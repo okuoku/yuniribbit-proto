@@ -1,454 +1,177 @@
-#!/usr/bin/env gsi
+(library (yuniribbit rsc)
+         (export )
+         (import (yuni scheme)
+                 (yuni hashtables))
 
-;;!#;; satisfy guile
+         
+;;
 
-;;; Ribbit Scheme compiler.
+(define (pipe-through program output)
+ (display "*** Minification is not supported with this Scheme system\n")
+ (display "*** so the generated code was not minified.\n")
+ (display "*** You might want to try running ")
+ (display program)
+ (display " manually.\n")
+ output)
 
-;;;----------------------------------------------------------------------------
 
-;; Compatibility layer.
 
-;; Tested with Gambit v4.7.5 and above, Guile 3.0.7, Chicken 5.2.0 and Kawa 3.1
+(define (cmd-line)
+ (command-line))
 
-(cond-expand
 
- ((and chicken compiling)
+(define (exit-program-normally)
+ (exit 0))
 
-  (declare
-   (block)
-   (fixnum-arithmetic)
-   (usual-integrations)))
+(define (exit-program-abnormally)
+ (exit 1))
 
- (else))
 
-(cond-expand
-
-  (gambit
-
-   (define (shell-cmd command)
-     (shell-command command))
-
-   (define (del-file path)
-     (delete-file path)))
-
-  (guile
-
-   (define (shell-cmd command)
-     (system command))
-
-   (define (del-file path)
-     (delete-file path)))
-
-  (chicken
-
-   (import (chicken process) (chicken file))
-
-   (define (shell-cmd command)
-     (system command))
-
-   (define (del-file path)
-     (delete-file path)))
-
-  (kawa
-
-   (define (shell-cmd command)
-     (system command))
-
-   (define (del-file path)
-     (delete-file path)))
-
-  (else
-
-   (define (shell-cmd command)
-     #f)
-
-   (define (del-file path)
-     #f)))
-
-(cond-expand
-
-  ((or gambit
-       guile
-       chicken
-       kawa)
-
-   (define (pipe-through program output)
-     (let ((tmpin  "rsc.tmpin")
-           (tmpout "rsc.tmpout"))
-       (call-with-output-file
-           tmpin
-         (lambda (port) (display output port)))
-       (shell-cmd (string-append
-                   program
-                   (string-append
-                    " < "
-                    (string-append
-                     tmpin
-                     (string-append " > " tmpout)))))
-       (let ((out
-              (call-with-input-file
-                  tmpout
-                (lambda (port) (read-line port #f)))))
-         (del-file tmpin)
-         (del-file tmpout)
-         out))))
-
-  (else
-
-   (define (pipe-through program output)
-     (display "*** Minification is not supported with this Scheme system\n")
-     (display "*** so the generated code was not minified.\n")
-     (display "*** You might want to try running ")
-     (display program)
-     (display " manually.\n")
-     output)))
-
-(cond-expand
-
-  (ribbit
-
-   (define (cmd-line)
-     (cons "" '())))
-
-  (chicken
-
-   (import (chicken process-context))
-
-   (define (cmd-line)
-     (cons (program-name) (command-line-arguments))))
-
-  (else
-
-   (define (cmd-line)
-     (command-line))))
-
-(cond-expand
-
-  (else
-
-   ;; It seems "exit" is pretty universal but we put it in a
-   ;; cond-expand in case some Scheme implementation does it
-   ;; differently.
-
-   (define (exit-program-normally)
-     (exit 0))
-
-   (define (exit-program-abnormally)
-     (exit 1))))
-
-(cond-expand
-
-  (gambit
-
-   (define (with-output-to-str thunk)
-     (with-output-to-string "" thunk)))
-
-  (chicken
-
-   (import (chicken port))
-
-   (define (with-output-to-str thunk)
-     (with-output-to-string thunk)))
-
-  (kawa
-
-   (define (with-output-to-str thunk)
-     (call-with-output-string
-      (lambda (port)
-        (parameterize ((current-output-port port))
-                      (thunk))))))
-
-  (else
-
-   (define (with-output-to-str thunk)
-     (with-output-to-string thunk))))
-
-(cond-expand
-
- (gambit (begin))
-
- (kawa
-
-  (import (rnrs hashtables))
-
-  (define (make-table)
-    (make-hashtable symbol-hash symbol=?))
-
-  (define (table-ref table key default)
-    (hashtable-ref table key default))
-
-  (define (table-set! table key value)
-    (hashtable-set! table key value))
-
-  (define (table-length table)
-    (hashtable-size table))
-
-  (define (table->list table)
-    (let-values (((keys entries) (hashtable-entries table)))
-      (vector->list (vector-map cons keys entries)))))
-
- (else
-
-     (define (make-table)
-       (cons '() '()))
-
-   (define (table-ref table key default)
-     (let ((x (assoc key (car table))))
-       (if x
-           (cdr x)
-           default)))
-
-   (define (table-set! table key value)
-     (let ((x (assoc key (car table))))
-       (if x
-           (set-cdr! x value)
-           (set-car! table
-                     (cons (cons key value) (car table))))))
-
-   (define (table-length table)
-     (length (car table)))
-
-   (define (table->list table)
-     (car table))))
-
-(cond-expand
-
-  ((or gambit chicken)
-
-   (define (symbol->str symbol)
-     (symbol->string symbol))
-
-   (define (str->uninterned-symbol string)
-     (string->uninterned-symbol string)))
-
-  (kawa
-
-   (define (symbol->str symbol)
-     (symbol->string symbol))
-
-   (define (str->uninterned-symbol string)
-     (symbol string #f)))
-
-  (else
-
-   (define uninterned-symbols (make-table))
-
-   (define (str->uninterned-symbol string)
-     (let* ((name
-             (string-append "@@@" ;; use a "unique" prefix
-                            (number->string
-                             (table-length uninterned-symbols))))
-            (sym
-             (string->symbol name)))
-       (table-set! uninterned-symbols sym string) ;; remember "real" name
-       sym))
-
-   (define (symbol->str symbol)
-     (table-ref uninterned-symbols symbol (symbol->string symbol)))))
-
-(cond-expand
-
- (gambit
-
-  (define (rsc-path-extension path)
-    (path-extension path))
-
-  (define (rsc-path-directory path)
-    (path-directory path)))
-
- (chicken
-
-  (import (chicken pathname))
-
-  (define (rsc-path-extension path)
-    (let ((ext (pathname-extension path)))
-      (if ext (string-append "." ext) "")))
-
-  (define (rsc-path-directory path)
-    (let ((dir (pathname-directory path)))
-      (if dir dir "")))
-
-  (define (path-expand path dir)
-    (make-pathname dir path)))
-
- (kawa
-
-  (define (rsc-path-extension path)
-    (let ((ext (path-extension path)))
-      (if ext (string-append "." ext) "")))
-
-  (define (rsc-path-directory path)
-    (path-directory path))
-
-  (define (path-expand path::string dir::string)
-    (if (= (string-length dir) 0)
-        path
-        (let ((p (java.nio.file.Path:of dir path)))
-          (p:toString)))))
-
- (else
-
-   (define (rsc-path-extension path)
-     (let loop ((i (- (string-length path) 1)))
-       (if (< i 0)
-           ""
-           (if (= (char->integer (string-ref path i)) 46) ;; #\.
-               (substring path i (string-length path))
-               (loop (- i 1))))))
-
-   (define (rsc-path-directory path)
-     (let loop ((i (- (string-length path) 1)))
-       (if (< i 0)
-           "./"
-           (if (= (char->integer (string-ref path i)) 47) ;; #\/
-               (substring path 0 (+ i 1))
-               (loop (- i 1))))))
-
-   (define (path-expand path dir)
-     (if (= (string-length dir) 0)
-         path
-         (if (= (char->integer (string-ref dir (- (string-length dir) 1))) 47) ;; #\/
-             (string-append dir path)
-             (string-append dir (string-append "/" path)))))))
-
-(cond-expand
-
- (gambit (begin))
-
- (else
-
-   (define (read-line port sep)
-     (let loop ((rev-chars '()))
-       (let ((c (read-char port)))
-         (if (or (eof-object? c) (eqv? c sep))
-             (list->string (reverse rev-chars))
-             (loop (cons c rev-chars))))))
-
-   (define (pp obj)
-     (write obj)
-     (newline))))
-
-(cond-expand
-
-  ((and gambit (or enable-bignum disable-bignum))) ;; recent Gambit?
-
-  (chicken
-
-   (import (chicken sort))
-
-   (define (list-sort! compare list)
-     (sort! list compare))
-
-   (define (list-sort compare list)
-     (sort list compare)))
-
-  (else
-
-   (define (list-sort! compare list)
-
-     ;; Stable mergesort algorithm
-
-     (define (sort list len)
-       (if (= len 1)
-           (begin
-             (set-cdr! list '())
-             list)
-           (let ((len1 (quotient len 2)))
-             (let loop ((n len1) (tail list))
-               (if (> n 0)
-                   (loop (- n 1) (cdr tail))
-                   (let ((x (sort tail (- len len1))))
-                     (merge (sort list len1) x)))))))
-
-     (define (merge list1 list2)
-       (if (pair? list1)
-           (if (pair? list2)
-               (let ((x1 (car list1))
-                     (x2 (car list2)))
-                 (if (compare x2 x1)
-                     (merge-loop list2 list2 list1 (cdr list2))
-                     (merge-loop list1 list1 (cdr list1) list2)))
-               list1)
-           list2))
-
-     (define (merge-loop result prev list1 list2)
-       (if (pair? list1)
-           (if (pair? list2)
-               (let ((x1 (car list1))
-                     (x2 (car list2)))
-                 (if (compare x2 x1)
-                     (begin
-                       (set-cdr! prev list2)
-                       (merge-loop result list2 list1 (cdr list2)))
-                     (begin
-                       (set-cdr! prev list1)
-                       (merge-loop result list1 (cdr list1) list2))))
-               (begin
-                 (set-cdr! prev list1)
-                 result))
-           (begin
-             (set-cdr! prev list2)
-             result)))
-
-     (let ((len (length list)))
-       (if (= 0 len)
-           '()
-           (sort list len))))
-
-   (define (list-sort compare list)
-     (list-sort! compare (append list '())))))
-
-(cond-expand
-
- (gambit (begin))
-
- (chicken
-
-  (define (script-file)
-    (program-name))
-
-  (define (executable-path)
-    (executable-pathname)))
-
- (else
-   (define (script-file)
-     (car (cmd-line)))
-
-   (define (executable-path)
-     "")))
-
-(cond-expand
-
-  ((and gambit ;; hack to detect recent Gambit version
-        (or enable-sharp-dot disable-sharp-dot)))
-
-  (chicken
-
-   (import (chicken string))
-
-   (define (string-concatenate string-list separator)
-     (string-intersperse string-list separator)))
-
-  (kawa
-
-   (define (string-concatenate string-list separator)
-     (string-join string-list separator)))
-
-  (else
-
-   (define (string-concatenate string-list separator)
-     (if (pair? string-list)
-         (let ((rev-string-list (reverse string-list))
-               (sep (string->list separator)))
-           (let loop ((lst (cdr rev-string-list))
-                      (result (string->list (car rev-string-list))))
-             (if (pair? lst)
-                 (loop (cdr lst)
-                       (append (string->list (car lst))
-                               (append sep
-                                       result)))
-                 (list->string result))))
-         ""))))
+(define (make-table)
+  (make-hashtable symbol-hash symbol=?))
+
+(define (table-ref table key default)
+  (hashtable-ref table key default))
+
+(define (table-set! table key value)
+  (hashtable-set! table key value))
+
+(define (table-length table)
+  (hashtable-size table))
+
+(define (table->list table)
+  (let-values (((keys entries) (hashtable-entries table)))
+              (vector->list (vector-map cons keys entries))))
+
+
+(define uninterned-symbols (make-table))
+
+(define (str->uninterned-symbol string)
+  (let* ((name
+           (string-append "@@@" ;; use a "unique" prefix
+                          (number->string
+                            (table-length uninterned-symbols))))
+         (sym
+           (string->symbol name)))
+    (table-set! uninterned-symbols sym string) ;; remember "real" name
+    sym))
+
+(define (symbol->str symbol)
+  (table-ref uninterned-symbols symbol (symbol->string symbol)))
+
+
+(define (rsc-path-extension path)
+  (let loop ((i (- (string-length path) 1)))
+   (if (< i 0)
+     ""
+     (if (= (char->integer (string-ref path i)) 46) ;; #\.
+       (substring path i (string-length path))
+       (loop (- i 1))))))
+
+(define (rsc-path-directory path)
+  (let loop ((i (- (string-length path) 1)))
+   (if (< i 0)
+     "./"
+     (if (= (char->integer (string-ref path i)) 47) ;; #\/
+       (substring path 0 (+ i 1))
+       (loop (- i 1))))))
+
+(define (path-expand path dir)
+  (if (= (string-length dir) 0)
+    path
+    (if (= (char->integer (string-ref dir (- (string-length dir) 1))) 47) ;; #\/
+      (string-append dir path)
+      (string-append dir (string-append "/" path)))))
+
+
+
+(define (read-line port sep)
+  (let loop ((rev-chars '()))
+   (let ((c (read-char port)))
+    (if (or (eof-object? c) (eqv? c sep))
+      (list->string (reverse rev-chars))
+      (loop (cons c rev-chars))))))
+
+(define (pp obj)
+  (write obj)
+  (newline))
+
+
+(define (list-sort! compare list)
+
+  ;; Stable mergesort algorithm
+
+  (define (sort list len)
+    (if (= len 1)
+      (begin
+        (set-cdr! list '())
+        list)
+      (let ((len1 (quotient len 2)))
+       (let loop ((n len1) (tail list))
+        (if (> n 0)
+          (loop (- n 1) (cdr tail))
+          (let ((x (sort tail (- len len1))))
+           (merge (sort list len1) x)))))))
+
+  (define (merge list1 list2)
+    (if (pair? list1)
+      (if (pair? list2)
+        (let ((x1 (car list1))
+              (x2 (car list2)))
+          (if (compare x2 x1)
+            (merge-loop list2 list2 list1 (cdr list2))
+            (merge-loop list1 list1 (cdr list1) list2)))
+        list1)
+      list2))
+
+  (define (merge-loop result prev list1 list2)
+    (if (pair? list1)
+      (if (pair? list2)
+        (let ((x1 (car list1))
+              (x2 (car list2)))
+          (if (compare x2 x1)
+            (begin
+              (set-cdr! prev list2)
+              (merge-loop result list2 list1 (cdr list2)))
+            (begin
+              (set-cdr! prev list1)
+              (merge-loop result list1 (cdr list1) list2))))
+        (begin
+          (set-cdr! prev list1)
+          result))
+      (begin
+        (set-cdr! prev list2)
+        result)))
+
+  (let ((len (length list)))
+   (if (= 0 len)
+     '()
+     (sort list len))))
+
+(define (list-sort compare list)
+  (list-sort! compare (append list '())))
+
+
+(define (script-file)
+  "")
+
+(define (executable-path)
+  "")
+
+
+(define (string-concatenate string-list separator)
+  (if (pair? string-list)
+    (let ((rev-string-list (reverse string-list))
+          (sep (string->list separator)))
+      (let loop ((lst (cdr rev-string-list))
+                 (result (string->list (car rev-string-list))))
+        (if (pair? lst)
+          (loop (cdr lst)
+                (append (string->list (car lst))
+                        (append sep
+                                result)))
+          (list->string result))))
+    ""))
 
 ;;;----------------------------------------------------------------------------
 
@@ -486,42 +209,38 @@
 
 ;;;----------------------------------------------------------------------------
 
-(cond-expand
 
-  (ribbit
 
-   (define procedure2? procedure?))
 
-  (else
 
-   (define pair-type      0)
-   (define procedure-type 1)
-   (define symbol-type    2)
-   (define string-type    3)
-   (define vector-type    4)
-   (define singleton-type 5)
+(define pair-type      0)
+(define procedure-type 1)
+(define symbol-type    2)
+(define string-type    3)
+(define vector-type    4)
+(define singleton-type 5)
 
-   (define (instance? o type) (and (rib? o) (eqv? (field2 o) type)))
+(define (instance? o type) (and (rib? o) (eqv? (field2 o) type)))
 
-   (define (rib field0 field1 field2)
-     (let ((r (make-vector 3)))
-       (vector-set! r 0 field0)
-       (vector-set! r 1 field1)
-       (vector-set! r 2 field2)
-       r))
+(define (rib field0 field1 field2)
+  (let ((r (make-vector 3)))
+   (vector-set! r 0 field0)
+   (vector-set! r 1 field1)
+   (vector-set! r 2 field2)
+   r))
 
-   (define (rib? o) (vector? o))
-   (define (field0 o) (vector-ref o 0))
-   (define (field1 o) (vector-ref o 1))
-   (define (field2 o) (vector-ref o 2))
-   (define (field0-set! o x) (vector-set! o 0 x) o)
-   (define (field1-set! o x) (vector-set! o 1 x) o)
-   (define (field2-set! o x) (vector-set! o 2 x) o)
+(define (rib? o) (vector? o))
+(define (field0 o) (vector-ref o 0))
+(define (field1 o) (vector-ref o 1))
+(define (field2 o) (vector-ref o 2))
+(define (field0-set! o x) (vector-set! o 0 x) o)
+(define (field1-set! o x) (vector-set! o 1 x) o)
+(define (field2-set! o x) (vector-set! o 2 x) o)
 
-   (define (procedure2? o) (instance? o procedure-type))
-   (define (make-procedure code env) (rib code env procedure-type))
-   (define (procedure-code proc) (field0 proc))
-   (define (procedure-env proc) (field1 proc))))
+(define (procedure2? o) (instance? o procedure-type))
+(define (make-procedure code env) (rib code env procedure-type))
+(define (procedure-code proc) (field0 proc))
+(define (procedure-env proc) (field1 proc))
 
 (define (oper pc) (field0 pc))
 (define (opnd pc) (field1 pc))
@@ -1779,115 +1498,109 @@
      0 ;; verbosity
      (read-all)))))
 
-(cond-expand
 
-  (ribbit  ;; Ribbit does not have access to the command line...
 
-   (pipeline-compiler))
+(define (fancy-compiler src-path
+                        output-path
+                        target
+                        input-path
+                        lib-path
+                        minify?
+                        verbosity)
 
-  (else
+  ;; This version of the compiler reads the program and runtime library
+  ;; source code from files and it supports various options.  It can
+  ;; merge the compacted RVM code with the implementation of the RVM
+  ;; for a specific target and minify the resulting target code.
 
-   (define (fancy-compiler src-path
-                           output-path
-                           target
-                           input-path
-                           lib-path
-                           minify?
-                           verbosity)
-
-     ;; This version of the compiler reads the program and runtime library
-     ;; source code from files and it supports various options.  It can
-     ;; merge the compacted RVM code with the implementation of the RVM
-     ;; for a specific target and minify the resulting target code.
-
-     (write-target-code
-      output-path
-      (generate-code
-       target
-       verbosity
-       input-path
-       minify?
-       (compile-program
+  (write-target-code
+    output-path
+    (generate-code
+      target
+      verbosity
+      input-path
+      minify?
+      (compile-program
         verbosity
         (read-program lib-path src-path)))))
 
-   (define (parse-cmd-line args)
-     (if (null? (cdr args))
+(define (parse-cmd-line args)
+  (if (null? (cdr args))
 
-         (pipeline-compiler)
+    (pipeline-compiler)
 
-         (let ((verbosity 0)
-               (target "rvm")
-               (input-path #f)
-               (output-path #f)
-               (lib-path "default")
-               (src-path #f)
-               (minify? #f))
+    (let ((verbosity 0)
+          (target "rvm")
+          (input-path #f)
+          (output-path #f)
+          (lib-path "default")
+          (src-path #f)
+          (minify? #f))
 
-           (let loop ((args (cdr args)))
-             (if (pair? args)
-                 (let ((arg (car args))
-                       (rest (cdr args)))
-                   (cond ((and (pair? rest) (member arg '("-t" "--target")))
-                          (set! target (car rest))
-                          (loop (cdr rest)))
-                         ((and (pair? rest) (member arg '("-i" "--input")))
-                          (set! input-path (car rest))
-                          (loop (cdr rest)))
-                         ((and (pair? rest) (member arg '("-o" "--output")))
-                          (set! output-path (car rest))
-                          (loop (cdr rest)))
-                         ((and (pair? rest) (member arg '("-l" "--library")))
-                          (set! lib-path (car rest))
-                          (loop (cdr rest)))
-                         ((and (pair? rest) (member arg '("-m" "--minify")))
-                          (set! minify? #t)
-                          (loop rest))
-                         ((member arg '("-v" "--v"))
-                          (set! verbosity (+ verbosity 1))
-                          (loop rest))
-                         ((member arg '("-vv" "--vv"))
-                          (set! verbosity (+ verbosity 2))
-                          (loop rest))
-                         ((member arg '("-vvv" "--vvv"))
-                          (set! verbosity (+ verbosity 3))
-                          (loop rest))
-                         ((member arg '("-q")) ;; silently ignore Chicken's -q option
-                          (loop rest))
-                         (else
-                          (if (and (>= (string-length arg) 2)
-                                   (string=? (substring arg 0 1) "-"))
-                              (begin
-                                (display "*** ignoring option ")
-                                (display arg)
-                                (newline)
-                                (loop rest))
-                              (begin
-                                (set! src-path arg)
-                                (loop rest))))))))
+      (let loop ((args (cdr args)))
+       (if (pair? args)
+         (let ((arg (car args))
+               (rest (cdr args)))
+           (cond ((and (pair? rest) (member arg '("-t" "--target")))
+                  (set! target (car rest))
+                  (loop (cdr rest)))
+                 ((and (pair? rest) (member arg '("-i" "--input")))
+                  (set! input-path (car rest))
+                  (loop (cdr rest)))
+                 ((and (pair? rest) (member arg '("-o" "--output")))
+                  (set! output-path (car rest))
+                  (loop (cdr rest)))
+                 ((and (pair? rest) (member arg '("-l" "--library")))
+                  (set! lib-path (car rest))
+                  (loop (cdr rest)))
+                 ((and (pair? rest) (member arg '("-m" "--minify")))
+                  (set! minify? #t)
+                  (loop rest))
+                 ((member arg '("-v" "--v"))
+                  (set! verbosity (+ verbosity 1))
+                  (loop rest))
+                 ((member arg '("-vv" "--vv"))
+                  (set! verbosity (+ verbosity 2))
+                  (loop rest))
+                 ((member arg '("-vvv" "--vvv"))
+                  (set! verbosity (+ verbosity 3))
+                  (loop rest))
+                 ((member arg '("-q")) ;; silently ignore Chicken's -q option
+                  (loop rest))
+                 (else
+                   (if (and (>= (string-length arg) 2)
+                            (string=? (substring arg 0 1) "-"))
+                     (begin
+                       (display "*** ignoring option ")
+                       (display arg)
+                       (newline)
+                       (loop rest))
+                     (begin
+                       (set! src-path arg)
+                       (loop rest))))))))
 
-           (if (not src-path)
+      (if (not src-path)
 
-               (begin
-                 (display "*** a Scheme source file must be specified\n")
-                 (exit-program-abnormally))
+        (begin
+          (display "*** a Scheme source file must be specified\n")
+          (exit-program-abnormally))
 
-               (fancy-compiler
-                src-path
-                (or output-path
-                    (if (or (equal? src-path "-") (equal? target "rvm"))
-                        "-"
-                        (string-append
-                         src-path
-                         (string-append "." target))))
-                target
-                input-path
-                lib-path
-                minify?
-                verbosity)))))
+        (fancy-compiler
+          src-path
+          (or output-path
+              (if (or (equal? src-path "-") (equal? target "rvm"))
+                "-"
+                (string-append
+                  src-path
+                  (string-append "." target))))
+          target
+          input-path
+          lib-path
+          minify?
+          verbosity)))))
 
-   (parse-cmd-line (cmd-line))
-
-   (exit-program-normally)))
+(define (run-rsc . args) ;; yuniribbit
+  (parse-cmd-line args))
 
 ;;;----------------------------------------------------------------------------
+)

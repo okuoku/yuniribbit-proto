@@ -1,10 +1,10 @@
-(define input ");'u?>vD?>vRD?>vRA?>vRA?>vR:?>vR=!(:lkm!':lkv6y") ;; RVM code that prints HELLO!
+(library (yuniribbit rvm)
+         (export rvm)
+         (import (yuni scheme)
+                 (yuniribbit util debug-expand))
+         
 
-(cond-expand
-  (gambit
-   ;;(define-cond-expand-feature debug)
-   (declare (standard-bindings) (block) (not safe)))
-  (else))
+(define input ");'u?>vD?>vRD?>vRA?>vRA?>vR:?>vR=!(:lkm!':lkv6y") ;; RVM code that prints HELLO!
 
 (define pair-type      0)
 (define procedure-type 1)
@@ -148,9 +148,7 @@
 
       main-proc)))
 
-(cond-expand
-  (debug
-
+(debug-expand
    (define tracing #f)
    (define step-count 0)
    (define start-tracing 0)
@@ -275,9 +273,8 @@
                    (loop (_field1 s) " "))
                  (begin
                    (display ")")
-                   (newline))))))))
-
-  (else))
+                   (newline)))))))
+   )
 
 (define (get-cont stack)
   (let loop ((stack stack))
@@ -290,19 +287,16 @@
   (_field0-set! (if (_rib? opnd) opnd (_list-tail stack opnd)) val))
 
 (define (run pc stack)
-  (cond-expand (debug (start-step stack)) (else #f))
+  (debug-expand (start-step stack))
   (let ((instr (_field0 pc))
         (opnd (_field1 pc))
         (next (_field2 pc)))
     (case instr
 
       ((0) ;; jump/call
-       (cond-expand
-         (debug
-          (if tracing
-              (trace-instruction (if (eqv? 0 next) "jump" "call") opnd)))
-         (else
-          #f))
+       (debug-expand
+         (if tracing
+           (trace-instruction (if (eqv? 0 next) "jump" "call") opnd)))
        (let* ((proc (get-var stack opnd))
               (code (_field0 proc)))
          (if (_rib? code)
@@ -337,53 +331,39 @@
                     stack)))))
 
       ((1) ;; set
-       (cond-expand
-         (debug
-          (if tracing
-              (trace-instruction "set" opnd)))
-         (else
-          #f))
+       (debug-expand
+         (if tracing
+           (trace-instruction "set" opnd)))
        (set-var stack opnd (_car stack))
        (run next
             (_cdr stack)))
 
       ((2) ;; get
-       (cond-expand
-         (debug
-          (if tracing
-              (trace-instruction "get" opnd)))
-         (else
-          #f))
+       (debug-expand
+         (if tracing
+           (trace-instruction "get" opnd)))
        (run next
             (_cons (get-var stack opnd) stack)))
 
       ((3) ;; const
-       (cond-expand
-         (debug
-          (if tracing
-              (trace-instruction "const" opnd)))
-         (else
-          #f))
+       (debug-expand
+         (if tracing
+           (trace-instruction "const" opnd)))
+
        (run next
             (_cons opnd stack)))
 
       ((4) ;; if
-       (cond-expand
-         (debug
-          (if tracing
-              (trace-instruction "if" #f)))
-         (else
-          #f))
+       (debug-expand
+         (if tracing
+           (trace-instruction "if" #f)))
        (run (if (eqv? (_car stack) _false) next opnd)
             (_cdr stack)))
       (else ;; halt
-       (cond-expand
-         (debug
+        (debug-expand
           (if tracing
-              (trace-instruction "halt" #f)))
-         (else
-          #f))
-       #f))))
+            (trace-instruction "halt" #f)))
+        #f))))
 
 (define (prim0 f)
   (lambda (stack)
@@ -447,6 +427,10 @@
           (prim1 (lambda (x) ;; 20
                    (exit x)))))
 
-(let ((x (decode)))
-  (run (_field2 (_field0 x)) ;; instruction stream of main procedure
-       (_rib 0 0 (_rib 5 0 0)))) ;; primordial continuation = halt
+(define (rvm)
+  (let ((x (decode)))
+    (run (_field2 (_field0 x)) ;; instruction stream of main procedure
+         (_rib 0 0 (_rib 5 0 0))))) ;; primordial continuation = halt
+
+
+)
