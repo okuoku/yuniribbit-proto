@@ -1,6 +1,7 @@
 (library (yuniribbit rsc)
          (export )
          (import (yuni scheme)
+                 (yuni util files)
                  (yuni hashtables))
 
          
@@ -28,7 +29,7 @@
 
 
 (define (make-table)
-  (make-hashtable symbol-hash symbol=?))
+  (make-symbol-hashtable))
 
 (define (table-ref table key default)
   (hashtable-ref table key default))
@@ -82,15 +83,6 @@
     (if (= (char->integer (string-ref dir (- (string-length dir) 1))) 47) ;; #\/
       (string-append dir path)
       (string-append dir (string-append "/" path)))))
-
-
-
-(define (read-line port sep)
-  (let loop ((rev-chars '()))
-   (let ((c (read-char port)))
-    (if (or (eof-object? c) (eqv? c sep))
-      (list->string (reverse rev-chars))
-      (loop (cons c rev-chars))))))
 
 (define (pp obj)
   (write obj)
@@ -1350,7 +1342,7 @@
         (cons x (read-all)))))
 
 (define (read-from-file path)
-  (with-input-from-file path read-all))
+  (file->sexp-list path))
 
 (define (read-library lib-path)
   (read-from-file
@@ -1370,7 +1362,8 @@
 ;; Target code generation.
 
 (define (string-from-file path)
-  (call-with-input-file path (lambda (port) (read-line port #f))))
+  (let ((str* (file->string-list path)))
+   (string-concatenate str* "")))
 
 (define (generate-code target verbosity input-path minify? proc-and-exports)
   (let* ((proc
