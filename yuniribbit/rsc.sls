@@ -1453,10 +1453,10 @@
 (define (write-target-code output-path target-code)
   (if (equal? output-path "-")
       (display target-code)
-      (with-output-to-file
+      (call-with-output-file
           output-path
-        (lambda ()
-          (display target-code)))))
+        (lambda (p)
+          (display target-code p)))))
 
 ;;;----------------------------------------------------------------------------
 
