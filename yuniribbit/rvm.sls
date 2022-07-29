@@ -148,7 +148,7 @@
 
       main-proc)))
 
-(debug-expand
+(debug-expand/define
    (define tracing #f)
    (define step-count 0)
    (define start-tracing 0)
