@@ -1,5 +1,5 @@
 (library (yuniribbit rsc)
-         (export )
+         (export run-rsc)
          (import (yuni scheme)
                  (yuni util files)
                  (yuni hashtables))
@@ -1593,7 +1593,7 @@
           verbosity)))))
 
 (define (run-rsc . args) ;; yuniribbit
-  (parse-cmd-line args))
+  (parse-cmd-line (cons "" args)))
 
 ;;;----------------------------------------------------------------------------
 )
