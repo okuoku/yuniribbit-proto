@@ -45,16 +45,18 @@
               (vector->list (vector-map cons keys entries))))
 
 
+(define uninterned-symbols-counter 0)
 (define uninterned-symbols (make-table))
 
 (define (str->uninterned-symbol string)
   (let* ((name
            (string-append "@@@" ;; use a "unique" prefix
                           (number->string
-                            (table-length uninterned-symbols))))
+                            uninterned-symbols-counter)))
          (sym
            (string->symbol name)))
     (table-set! uninterned-symbols sym string) ;; remember "real" name
+    (set! uninterned-symbols-counter (+ 1 uninterned-symbols-counter))
     sym))
 
 (define (symbol->str symbol)
@@ -260,7 +262,7 @@
          (let ((v (lookup expr (ctx-cte ctx) 0)))
            (if (eqv? v expr) ;; global?
                (let ((g (live? expr (ctx-live ctx))))
-                 (if (and g (constant? g)) ;; constant propagated?
+                 (if (and g (constant?0 g)) ;; constant propagated?
                      (rib const-op (cadr (cadr g)) cont)
                      (rib get-op v cont)))
                (rib get-op v cont))))
@@ -278,7 +280,7 @@
                         (if (eqv? v var) ;; global?
                             (let ((g (live? var (ctx-live ctx))))
                               (if g
-                                  (if (and (constant? g)
+                                  (if (and (constant?0 g)
                                            (not (assoc var (ctx-exports ctx))))
                                       (begin
 ;;                                        (pp `(*** constant propagation of ,var = ,(cadr g))
@@ -790,7 +792,7 @@
             (live? var (cdr lst))))
       #f))
 
-(define (constant? g)
+(define (constant?0 g)
   (and (pair? (cdr g))
        (null? (cddr g))
        (pair? (cadr g))
