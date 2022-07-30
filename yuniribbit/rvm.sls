@@ -2,9 +2,6 @@
          (export rvm)
          (import (yuni scheme)
                  (yuniribbit util debug-expand))
-         
-
-(define input ");'u?>vD?>vRD?>vRA?>vRA?>vR:?>vR=!(:lkm!':lkv6y") ;; RVM code that prints HELLO!
 
 (define pair-type      0)
 (define procedure-type 1)
@@ -49,104 +46,6 @@
       (+ 1 (_length (_cdr lst)))
       0))
 
-(define pos 0)
-
-(define (get-byte)
-  (let ((x (char->integer (string-ref input pos))))
-    (set! pos (+ pos 1))
-    x))
-
-(define (decode)
-
-  (define eb/2 46) ;; half of encoding base (92)
-
-  (define (get-code)
-    (let ((x (- (get-byte) 35)))
-      (if (< x 0) 57 x)))
-
-  (define (get-int n)
-    (let ((x (get-code))
-          (y (* n eb/2)))
-      (if (< x eb/2)
-          (+ y x)
-          (get-int (+ y (- x eb/2))))))
-
-  (define (build-symtbl)
-
-    (define (add-symbol chars symtbl)
-      (_cons (_string->uninterned-symbol (_list->string chars))
-             symtbl))
-
-    (let loop1 ((n (get-int 0)) (symtbl _nil))
-      (if (< 0 n)
-          (loop1 (- n 1) (add-symbol _nil symtbl))
-          (let loop2 ((symtbl symtbl))
-            (let loop3 ((chars _nil))
-              (let ((x (get-byte)))
-                (if (= x 44) ;; #\, separates symbols
-                    (loop2 (add-symbol chars symtbl))
-                    (if (= x 59) ;; #\; terminates symbol list
-                        (add-symbol chars symtbl)
-                        (loop3 (_cons x chars))))))))))
-
-  (let ((symtbl (build-symtbl)))
-
-    (define (decode-loop stack)
-
-      (define (sym n)
-        (_car (_list-tail symtbl n)))
-
-      (define (add-instruction op opnd stack)
-;;        (pp (list (vector-ref '#(jump/call set get const if) op) opnd))
-        (_set-car! stack (_rib op opnd (_car stack)))
-        (decode-loop stack))
-
-      (let ((x (get-code)))
-        (let loop ((op 0) (n x))
-          (let ((d (vector-ref '#(20 30 0 10 11 4) op)))
-            (if (< (+ 2 d) n)
-                (loop (+ op 1) (- n (+ d 3)))
-                (if (< 90 x)
-                    (add-instruction 4 ;; if
-                                     (_car stack)
-                                     (_cdr stack))
-                    (let ((stack (if (= op 0) (_cons 0 stack) stack))
-                          (opnd (if (< n d)
-                                    (if (< op 3)
-                                        (sym n)
-                                        n)
-                                    (if (= n d)
-                                        (get-int 0)
-                                        (sym (get-int (- (- n d) 1)))))))
-                      (if (< 4 op)
-                          (let ((proc (_rib
-                                       (_rib opnd 0 (_car stack))
-                                       _nil
-                                       procedure-type))
-                                (stack (_cdr stack)))
-                            (if (_rib? stack)
-                                (add-instruction 3 ;; const-proc
-                                                 proc
-                                                 stack)
-                                proc))
-                          (add-instruction (if (< 0 op) (- op 1) 0)
-                                           opnd
-                                           stack)))))))))
-
-    (let ((main-proc (decode-loop 0)))
-
-      ;; set predefined globals (always 4 first in the symbol table)
-
-      (define (set-global val)
-        (_field0-set! (_car symtbl) val)
-        (set! symtbl (_cdr symtbl)))
-
-      (set-global (_rib 0 symtbl procedure-type)) ;; rib  = primitive 0
-      (set-global _false) ;; false  = #f
-      (set-global _true)  ;; true   = #t
-      (set-global _nil)   ;; nil    = ()
-
-      main-proc)))
 
 (debug-expand/define
    (define tracing #f)
@@ -286,85 +185,6 @@
 (define (set-var stack opnd val)
   (_field0-set! (if (_rib? opnd) opnd (_list-tail stack opnd)) val))
 
-(define (run pc stack)
-  (debug-expand (start-step stack))
-  (let ((instr (_field0 pc))
-        (opnd (_field1 pc))
-        (next (_field2 pc)))
-    (case instr
-
-      ((0) ;; jump/call
-       (debug-expand
-         (if tracing
-           (trace-instruction (if (eqv? 0 next) "jump" "call") opnd)))
-       (let* ((proc (get-var stack opnd))
-              (code (_field0 proc)))
-         (if (_rib? code)
-
-             ;; calling a lambda
-             (let ((new-cont (_rib 0 proc 0)))
-               (let loop ((nargs (_field0 code))
-                          (new-stack new-cont)
-                          (stack stack))
-                 (if (< 0 nargs)
-                     (loop (- nargs 1)
-                           (_cons (_car stack) new-stack)
-                           (_cdr stack))
-                     (begin
-                       (if (_rib? next) ;; non-tail call?
-                           (begin
-                             (_field0-set! new-cont stack)
-                             (_field2-set! new-cont next))
-                           (let ((k (get-cont stack)))
-                             (_field0-set! new-cont (_field0 k))
-                             (_field2-set! new-cont (_field2 k))))
-                       (run (_field2 code)
-                            new-stack)))))
-
-             ;; calling a primitive
-             (let ((stack ((vector-ref primitives code) stack)))
-               (run (if (_rib? next) ;; non-tail call?
-                        next
-                        (let ((cont (get-cont stack)))
-                          (_field1-set! stack (_field0 cont))
-                          (_field2 cont)))
-                    stack)))))
-
-      ((1) ;; set
-       (debug-expand
-         (if tracing
-           (trace-instruction "set" opnd)))
-       (set-var stack opnd (_car stack))
-       (run next
-            (_cdr stack)))
-
-      ((2) ;; get
-       (debug-expand
-         (if tracing
-           (trace-instruction "get" opnd)))
-       (run next
-            (_cons (get-var stack opnd) stack)))
-
-      ((3) ;; const
-       (debug-expand
-         (if tracing
-           (trace-instruction "const" opnd)))
-
-       (run next
-            (_cons opnd stack)))
-
-      ((4) ;; if
-       (debug-expand
-         (if tracing
-           (trace-instruction "if" #f)))
-       (run (if (eqv? (_car stack) _false) next opnd)
-            (_cdr stack)))
-      (else ;; halt
-        (debug-expand
-          (if tracing
-            (trace-instruction "halt" #f)))
-        #f))))
-
 (define (prim0 f)
   (lambda (stack)
     (_cons (f) stack)))
@@ -373,6 +193,12 @@
   (lambda (stack)
     (let* ((x (_car stack)) (stack (_cdr stack)))
       (_cons (f x) stack))))
+
+(define (prim1/term f)
+  (lambda (stack)
+    (let* ((x (_car stack)) (stack (_cdr stack)))
+     (f x)
+     #f)))
 
 (define (prim2 f)
   (lambda (stack)
@@ -390,47 +216,235 @@
 (define (boolean x)
   (if x _true _false))
 
-(define primitives
-  (vector (prim3 _rib)             ;; 0
-          (prim1 (lambda (x) x))   ;; 1
-          _cdr                     ;; 2
-          (prim2 (lambda (y x) x)) ;; 3
+(define (rvm input done-cb)
+  (define not-yet (cons 0 0))
+  (define output-result not-yet)
+  (define output-buf "")
+  (define pos 0)
 
-          (lambda (stack) ;; 4
-            (let* ((x (_car stack)) (stack (_cdr stack)))
-              (_cons (_rib (_field0 x) stack procedure-type) stack)))
+  (define (get-byte)
+    (let ((x (char->integer (string-ref input pos))))
+     (set! pos (+ pos 1))
+     x))
 
-          (prim1 (lambda (x) (boolean (_rib? x)))) ;; 5
-          (prim1 _field0) ;; 6
-          (prim1 _field1) ;; 7
-          (prim1 _field2) ;; 8
-          (prim2 (lambda (x y) (_field0-set! x y) y)) ;; 9
-          (prim2 (lambda (x y) (_field1-set! x y) y)) ;; 10
-          (prim2 (lambda (x y) (_field2-set! x y) y)) ;; 11
-          (prim2 (lambda (x y) (boolean (eqv? x y)))) ;; 12
-          (prim2 (lambda (x y) (boolean (< x y)))) ;; 13
-          (prim2 +) ;; 14
-          (prim2 -) ;; 15
-          (prim2 *) ;; 16
-          (prim2 quotient) ;; 17
+  (define (decode)
 
-          (prim0 (lambda () ;; 18
-                   (if (< pos (string-length input))
+    (define eb/2 46) ;; half of encoding base (92)
+
+    (define (get-code)
+      (let ((x (- (get-byte) 35)))
+       (if (< x 0) 57 x)))
+
+    (define (get-int n)
+      (let ((x (get-code))
+            (y (* n eb/2)))
+        (if (< x eb/2)
+          (+ y x)
+          (get-int (+ y (- x eb/2))))))
+
+    (define (build-symtbl)
+
+      (define (add-symbol chars symtbl)
+        (_cons (_string->uninterned-symbol (_list->string chars))
+               symtbl))
+
+      (let loop1 ((n (get-int 0)) (symtbl _nil))
+       (if (< 0 n)
+         (loop1 (- n 1) (add-symbol _nil symtbl))
+         (let loop2 ((symtbl symtbl))
+          (let loop3 ((chars _nil))
+           (let ((x (get-byte)))
+            (if (= x 44) ;; #\, separates symbols
+              (loop2 (add-symbol chars symtbl))
+              (if (= x 59) ;; #\; terminates symbol list
+                (add-symbol chars symtbl)
+                (loop3 (_cons x chars))))))))))
+
+    (let ((symtbl (build-symtbl)))
+
+     (define (decode-loop stack)
+
+       (define (sym n)
+         (_car (_list-tail symtbl n)))
+
+       (define (add-instruction op opnd stack)
+         ;;        (pp (list (vector-ref '#(jump/call set get const if) op) opnd))
+         (_set-car! stack (_rib op opnd (_car stack)))
+         (decode-loop stack))
+
+       (let ((x (get-code)))
+        (let loop ((op 0) (n x))
+         (let ((d (vector-ref '#(20 30 0 10 11 4) op)))
+          (if (< (+ 2 d) n)
+            (loop (+ op 1) (- n (+ d 3)))
+            (if (< 90 x)
+              (add-instruction 4 ;; if
+                               (_car stack)
+                               (_cdr stack))
+              (let ((stack (if (= op 0) (_cons 0 stack) stack))
+                    (opnd (if (< n d)
+                            (if (< op 3)
+                              (sym n)
+                              n)
+                            (if (= n d)
+                              (get-int 0)
+                              (sym (get-int (- (- n d) 1)))))))
+                (if (< 4 op)
+                  (let ((proc (_rib
+                                (_rib opnd 0 (_car stack))
+                                _nil
+                                procedure-type))
+                        (stack (_cdr stack)))
+                    (if (_rib? stack)
+                      (add-instruction 3 ;; const-proc
+                                       proc
+                                       stack)
+                      proc))
+                  (add-instruction (if (< 0 op) (- op 1) 0)
+                                   opnd
+                                   stack)))))))))
+
+     (let ((main-proc (decode-loop 0)))
+
+      ;; set predefined globals (always 4 first in the symbol table)
+
+      (define (set-global val)
+        (_field0-set! (_car symtbl) val)
+        (set! symtbl (_cdr symtbl)))
+
+      (set-global (_rib 0 symtbl procedure-type)) ;; rib  = primitive 0
+      (set-global _false) ;; false  = #f
+      (set-global _true)  ;; true   = #t
+      (set-global _nil)   ;; nil    = ()
+
+      main-proc)))
+  (define (run pc stack)
+    (debug-expand (start-step stack))
+    (let ((instr (_field0 pc))
+          (opnd (_field1 pc))
+          (next (_field2 pc)))
+      (case instr
+
+        ((0) ;; jump/call
+         (debug-expand
+           (if tracing
+             (trace-instruction (if (eqv? 0 next) "jump" "call") opnd)))
+         (let* ((proc (get-var stack opnd))
+                (code (_field0 proc)))
+           (if (_rib? code)
+
+             ;; calling a lambda
+             (let ((new-cont (_rib 0 proc 0)))
+              (let loop ((nargs (_field0 code))
+                         (new-stack new-cont)
+                         (stack stack))
+                (if (< 0 nargs)
+                  (loop (- nargs 1)
+                        (_cons (_car stack) new-stack)
+                        (_cdr stack))
+                  (begin
+                    (if (_rib? next) ;; non-tail call?
+                      (begin
+                        (_field0-set! new-cont stack)
+                        (_field2-set! new-cont next))
+                      (let ((k (get-cont stack)))
+                       (_field0-set! new-cont (_field0 k))
+                       (_field2-set! new-cont (_field2 k))))
+                    (run (_field2 code)
+                         new-stack)))))
+
+             ;; calling a primitive
+             (let ((stack ((vector-ref primitives code) stack)))
+               (and stack
+                    (run (if (_rib? next) ;; non-tail call?
+                           next
+                           (let ((cont (get-cont stack)))
+                            (_field1-set! stack (_field0 cont))
+                            (_field2 cont)))
+                         stack))))))
+
+        ((1) ;; set
+         (debug-expand
+           (if tracing
+             (trace-instruction "set" opnd)))
+         (set-var stack opnd (_car stack))
+         (run next
+              (_cdr stack)))
+
+        ((2) ;; get
+         (debug-expand
+           (if tracing
+             (trace-instruction "get" opnd)))
+         (run next
+              (_cons (get-var stack opnd) stack)))
+
+        ((3) ;; const
+         (debug-expand
+           (if tracing
+             (trace-instruction "const" opnd)))
+
+         (run next
+              (_cons opnd stack)))
+
+        ((4) ;; if
+         (debug-expand
+           (if tracing
+             (trace-instruction "if" #f)))
+         (run (if (eqv? (_car stack) _false) next opnd)
+              (_cdr stack)))
+        (else ;; halt
+          (debug-expand
+            (if tracing
+              (trace-instruction "halt" #f)))
+          #f))))
+
+  (define primitives
+    (vector (prim3 _rib)             ;; 0
+            (prim1 (lambda (x) x))   ;; 1
+            _cdr                     ;; 2
+            (prim2 (lambda (y x) x)) ;; 3
+
+            (lambda (stack) ;; 4
+              (let* ((x (_car stack)) (stack (_cdr stack)))
+               (_cons (_rib (_field0 x) stack procedure-type) stack)))
+
+            (prim1 (lambda (x) (boolean (_rib? x)))) ;; 5
+            (prim1 _field0) ;; 6
+            (prim1 _field1) ;; 7
+            (prim1 _field2) ;; 8
+            (prim2 (lambda (x y) (_field0-set! x y) y)) ;; 9
+            (prim2 (lambda (x y) (_field1-set! x y) y)) ;; 10
+            (prim2 (lambda (x y) (_field2-set! x y) y)) ;; 11
+            (prim2 (lambda (x y) (boolean (eqv? x y)))) ;; 12
+            (prim2 (lambda (x y) (boolean (< x y)))) ;; 13
+            (prim2 +) ;; 14
+            (prim2 -) ;; 15
+            (prim2 *) ;; 16
+            (prim2 quotient) ;; 17
+
+            (prim0 (lambda () ;; 18
+                     (if (< pos (string-length input))
                        (get-byte)
-                       (let ((c (read-char)))
-                         (if (char? c) (char->integer c) -1)))))
+                       -1)))
 
-          (prim1 (lambda (x) ;; 19
-                   (write-char (integer->char x))
-                   x))
+            (prim1 (lambda (x) ;; 19
+                     (set! output-buf
+                       (string-append
+                         output-buf
+                         (list->string (list (integer->char x)))))
+                     x))
 
-          (prim1 (lambda (x) ;; 20
-                   (exit x)))))
+            (prim1/term (lambda (x) ;; 20
+                          (set! output-result x)
+                          (done-cb output-result output-buf)))))
 
-(define (rvm)
+  ;; Start
   (let ((x (decode)))
-    (run (_field2 (_field0 x)) ;; instruction stream of main procedure
-         (_rib 0 0 (_rib 5 0 0))))) ;; primordial continuation = halt
+   (run (_field2 (_field0 x)) ;; instruction stream of main procedure
+        (_rib 0 0 (_rib 5 0 0))) ;; primordial continuation = halt
+   (when (eq? not-yet output-result)
+     (done-cb #t output-buf))
+   )) 
 
 
 )
