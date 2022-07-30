@@ -896,14 +896,6 @@
                          (make-procedure
                           (rib (length params)
                                0
-;;                               #; ;; support for single expression in body
-;;                               (comp (extend params
-;;                                             (cons #f
-;;                                                   (cons #f
-;;                                                         cte)))
-;;                                     (caddr expr)
-;;                                     tail)
-                               ;#; ;; support for multiple expressions in body
                                (comp-begin (extend params
                                                    (cons #f
                                                          (cons #f
@@ -925,9 +917,6 @@
                     (comp-bind cte
                                (car binding)
                                (cadr binding)
-;;                               #; ;; support for single expression in body
-;;                               (caddr expr)
-                               ;#; ;; support for multiple expressions in body
                                (cddr expr)
                                cont)))
 
@@ -972,11 +961,6 @@
                         cont))
 
                  (else
-;;                  #; ;; support for calls with only variable in operator position
-;;                  (comp-call cte
-;;                             (cdr expr)
-;;                             (cons first cont))
-                  ;#; ;; support for calls with any expression in operator position
                   (let ((args (cdr expr)))
                     (if (symbol? first)
                         (comp-call cte
@@ -985,9 +969,6 @@
                         (comp-bind cte
                                    '_
                                    first
-;;                                   #; ;; support for single expression in body
-;;                                   (cons '_ args)
-                                   ;#; ;; support for multiple expressions in body
                                    (cons (cons '_ args) '())
                                    cont)))))))
 
@@ -1004,15 +985,6 @@
 (define (comp-bind cte var expr body cont)
   (comp cte
         expr
-;;        #; ;; support for single expression in body
-;;        (comp (cons var cte)
-;;              body
-;;              (if (eqv? cont tail)
-;;                  cont
-;;                  (rib jump/call-op ;; call
-;;                       'arg2
-;;                       cont)))
-        ;#; ;; support for multiple expressions in body
         (comp-begin (cons var cte)
                     body
                     (if (eqv? cont tail)
