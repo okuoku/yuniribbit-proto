@@ -169,7 +169,7 @@
 
 (define predefined '(rib false true nil)) ;; predefined symbols
 
-(define primitives '(
+(define primitives0 '(
 (rib         0) ;; predefined by RVM (must be first and 0)
 (id          1)
 (arg1        2)
@@ -980,7 +980,7 @@
 
     (define (prim-code sym tail)
       (rib const-op
-           (cadr (assq sym primitives)) ;; get index
+           (cadr (assq sym primitives0)) ;; get index
            (rib const-op
                 0
                 (rib const-op
@@ -991,7 +991,7 @@
                                (scan-opnd sym 3)
                                tail))))))
 
-    (let loop ((lst (cdr primitives)) ;; skip rib primitive that is predefined
+    (let loop ((lst (cdr primitives0)) ;; skip rib primitive that is predefined
                (tail tail))
       (if (pair? lst)
           (loop (cdr lst)
