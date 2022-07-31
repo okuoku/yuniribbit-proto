@@ -5,9 +5,6 @@
         (yunitest mini)
         (yuni compat ident))
 
-(define code-hello ");'u?>vD?>vRD?>vRA?>vRA?>vR:?>vR=!(:lkm!':lkv6y") ;; RVM code that prints HELLO!
-
-
 ;; Copied from (yuni util files)
 (define (read-source pth)
   (define (file->list proc pth)
@@ -63,11 +60,6 @@
   (error "Cyclone: not yet ported."))
 
 
-(rvm code-hello
-     (lambda x
-       (write (list 'EXIT: x)) (newline)
-       (check-equal x (list #t "HELLO!\n"))))
-
 (let* ((s (compile-program 0 (append runtime code)))
        (c (generate-code "rvm" 0 #f #f s)))
   (define (test value code)
@@ -97,6 +89,13 @@
                       (if (equal? x '(1234))
                         12345
                         99999))))))
+  (test 12345 '(exit
+                 (begin
+                   (define a (lambda (x) (cons x '())))
+                   (let ((x (a 5678 1234)))
+                    (if (equal? x '(1234))
+                      12345
+                      99999)))))
   )
 
 (check-finish)
