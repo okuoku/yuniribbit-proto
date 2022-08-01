@@ -191,7 +191,7 @@
 ;; Symbols (R4RS section 6.4).
 
 (define symbol? (instance? symbol-type))
-(define (string->uninterned-symbol str) (rib #f str symbol-type))
+(define (string->uninterned-symbol str) (rib "unspecified" str symbol-type))
 
 (define (symbol->string sym)
   (if (symbol? sym)

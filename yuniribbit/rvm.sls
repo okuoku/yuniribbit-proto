@@ -1,6 +1,7 @@
 (library (yuniribbit rvm)
          (export rvm)
          (import (yuni scheme)
+                 (yuni hashtables)
                  (yuniribbit util debug-expand))
 
 (define pair-type      0)
@@ -32,9 +33,9 @@
 
 (define (_string->uninterned-symbol str) (_rib _false str symbol-type))
 
-(define _false (_rib 0 0 singleton-type))
-(define _true  (_rib 0 0 singleton-type))
-(define _nil   (_rib 0 0 singleton-type))
+(define _false (_rib "false" 0 singleton-type))
+(define _true  (_rib "true" 0 singleton-type))
+(define _nil   (_rib "nil" 0 singleton-type))
 
 (define (_list-tail lst i)
   (if (< 0 i)
@@ -179,12 +180,6 @@
   (let loop ((stack stack))
     (if (_rib? (_field2 stack)) stack (loop (_cdr stack)))))
 
-(define (get-var stack opnd)
-  (_field0 (if (_rib? opnd) opnd (_list-tail stack opnd))))
-
-(define (set-var stack opnd val)
-  (_field0-set! (if (_rib? opnd) opnd (_list-tail stack opnd)) val))
-
 (define (prim0 f)
   (lambda (stack)
     (_cons (f) stack)))
@@ -216,108 +211,73 @@
 (define (boolean x)
   (if x _true _false))
 
-(define (rvm input done-cb)
+(define (import-string x)
+  (let loop ((acc "")
+             (cur (_field0 x)))
+    (if (_pair? cur)
+      (loop (string-append 
+              acc
+              (list->string (list (integer->char (_car cur)))))
+            (_cdr cur))
+      acc)))
+
+(define (rvm code+exports input done-cb)
   (define not-yet (cons 0 0))
   (define output-result not-yet)
   (define output-buf "")
   (define pos 0)
+  (define code (car code+exports))
+  (define exports (cdr code+exports))
+  (define globals (make-symbol-hashtable))
+  (define vmsym? (instance? symbol-type))
+  (define symcache (make-symbol-hashtable))
+  (define (symeq? sym rib) 
+    (and (vmsym? rib)
+         (let ((x (hashtable-ref symcache sym #f)))
+          (eq? x rib))))
+
+  (define (get-var stack opnd)
+    (_field0 
+      (cond
+        ((_rib? opnd) 
+         opnd)
+        ((symbol? opnd) (hashtable-ref globals opnd "NOT-FOUND!!"))
+        (else (_list-tail stack opnd)))))
+
+  (define (set-var stack opnd val)
+    (_field0-set! 
+      (cond
+        ((_rib? opnd) opnd)
+        ((symbol? opnd) 
+         (when (eq? 'symtbl opnd)
+           ;; Handle delayed "code -> VM" import
+           (when (_pair? val)
+             (let ((sym (_car val)))
+              (unless (eqv? symbol-type (_field2 sym))
+                (error "Tried to add non-symbol!!"))
+              (when (string=? "unspecified" (_field0 sym))
+                (let ((name (string->symbol (import-string (_field1 sym)))))
+                 (hashtable-set! symcache name sym)
+                 (let ((v (hashtable-ref globals name #f)))
+                   (when v
+                     (_field0-set! sym (_field0 v)))))))))
+         (let ((f (hashtable-ref globals opnd #f)))
+          (cond
+            (f f)
+            (else 
+              (hashtable-set! globals opnd
+                              (_string->uninterned-symbol
+                                (symbol->string opnd)))
+              (hashtable-ref globals opnd #f)))))
+        (else (_list-tail stack opnd)))
+      val))
+
 
   (define (get-byte)
     (let ((x (char->integer (string-ref input pos))))
      (set! pos (+ pos 1))
      x))
 
-  (define (decode)
-
-    (define eb/2 46) ;; half of encoding base (92)
-
-    (define (get-code)
-      (let ((x (- (get-byte) 35)))
-       (if (< x 0) 57 x)))
-
-    (define (get-int n)
-      (let ((x (get-code))
-            (y (* n eb/2)))
-        (if (< x eb/2)
-          (+ y x)
-          (get-int (+ y (- x eb/2))))))
-
-    (define (build-symtbl)
-
-      (define (add-symbol chars symtbl)
-        (_cons (_string->uninterned-symbol (_list->string chars))
-               symtbl))
-
-      (let loop1 ((n (get-int 0)) (symtbl _nil))
-       (if (< 0 n)
-         (loop1 (- n 1) (add-symbol _nil symtbl))
-         (let loop2 ((symtbl symtbl))
-          (let loop3 ((chars _nil))
-           (let ((x (get-byte)))
-            (if (= x 44) ;; #\, separates symbols
-              (loop2 (add-symbol chars symtbl))
-              (if (= x 59) ;; #\; terminates symbol list
-                (add-symbol chars symtbl)
-                (loop3 (_cons x chars))))))))))
-
-    (let ((symtbl (build-symtbl)))
-
-     (define (decode-loop stack)
-
-       (define (sym n)
-         (_car (_list-tail symtbl n)))
-
-       (define (add-instruction op opnd stack)
-         ;;        (pp (list (vector-ref '#(jump/call set get const if) op) opnd))
-         (_set-car! stack (_rib op opnd (_car stack)))
-         (decode-loop stack))
-
-       (let ((x (get-code)))
-        (let loop ((op 0) (n x))
-         (let ((d (vector-ref '#(20 30 0 10 11 4) op)))
-          (if (< (+ 2 d) n)
-            (loop (+ op 1) (- n (+ d 3)))
-            (if (< 90 x)
-              (add-instruction 4 ;; if
-                               (_car stack)
-                               (_cdr stack))
-              (let ((stack (if (= op 0) (_cons 0 stack) stack))
-                    (opnd (if (< n d)
-                            (if (< op 3)
-                              (sym n)
-                              n)
-                            (if (= n d)
-                              (get-int 0)
-                              (sym (get-int (- (- n d) 1)))))))
-                (if (< 4 op)
-                  (let ((proc (_rib
-                                (_rib opnd 0 (_car stack))
-                                _nil
-                                procedure-type))
-                        (stack (_cdr stack)))
-                    (if (_rib? stack)
-                      (add-instruction 3 ;; const-proc
-                                       proc
-                                       stack)
-                      proc))
-                  (add-instruction (if (< 0 op) (- op 1) 0)
-                                   opnd
-                                   stack)))))))))
-
-     (let ((main-proc (decode-loop 0)))
-
-      ;; set predefined globals (always 4 first in the symbol table)
-
-      (define (set-global val)
-        (_field0-set! (_car symtbl) val)
-        (set! symtbl (_cdr symtbl)))
-
-      (set-global (_rib 0 symtbl procedure-type)) ;; rib  = primitive 0
-      (set-global _false) ;; false  = #f
-      (set-global _true)  ;; true   = #t
-      (set-global _nil)   ;; nil    = ()
-
-      main-proc)))
   (define (run pc stack)
     (debug-expand (start-step stack))
     (let ((instr (_field0 pc))
@@ -383,8 +343,12 @@
            (if tracing
              (trace-instruction "const" opnd)))
 
-         (run next
-              (_cons opnd stack)))
+         (let ((v (cond
+                    ((number? opnd) opnd)
+                    ((null? opnd) _nil)
+                    ((boolean? opnd) (if opnd _true _false))
+                    (else opnd))))
+           (run next (_cons v stack))))
 
         ((4) ;; if
          (debug-expand
@@ -392,11 +356,40 @@
              (trace-instruction "if" #f)))
          (run (if (eqv? (_car stack) _false) next opnd)
               (_cdr stack)))
+        ((5) ;; enter (yuniribbit)
+         (debug-expand
+           (if tracing
+             (trace-instruction "enter" opnd)))
+         (run next stack))
         (else ;; halt
           (debug-expand
             (if tracing
               (trace-instruction "halt" #f)))
           #f))))
+
+  (define primitives0 '((rib         0)
+                        (id          1)
+                        (arg1        2)
+                        (arg2        3)
+                        (close       4)
+                        (rib?        5)
+                        (field0      6)
+                        (field1      7)
+                        (field2      8)
+                        (field0-set! 9)
+                        (field1-set! 10)
+                        (field2-set! 11)
+                        (eqv?        12)
+                        (<           13)
+                        (+           14)
+                        (-           15)
+                        (*           16)
+                        (quotient    17)
+                        (getchar     18)
+                        (putchar     19)
+                        (exit        20)
+                        ))
+
 
   (define primitives
     (vector (prim3 _rib)             ;; 0
@@ -415,7 +408,16 @@
             (prim2 (lambda (x y) (_field0-set! x y) y)) ;; 9
             (prim2 (lambda (x y) (_field1-set! x y) y)) ;; 10
             (prim2 (lambda (x y) (_field2-set! x y) y)) ;; 11
-            (prim2 (lambda (x y) (boolean (eqv? x y)))) ;; 12
+            (prim2 (lambda (x y)  ;; 12
+                     (cond
+                       ((symbol? x)
+                        (boolean (or (symeq? x y)
+                                     (eqv? x y))))
+                       ((symbol? y)
+                        (boolean (or (symeq? y x)
+                                     (eqv? x y))))
+                       (else
+                         (boolean (eqv? x y))))))
             (prim2 (lambda (x y) (boolean (< x y)))) ;; 13
             (prim2 +) ;; 14
             (prim2 -) ;; 15
@@ -438,13 +440,31 @@
                           (set! output-result x)
                           (done-cb output-result output-buf)))))
 
+  (for-each (lambda (e)
+              (let ((sym (car e)))
+               (hashtable-set! globals sym (_string->uninterned-symbol
+                                             (symbol->string sym)))))
+            exports)
+
+  ;; Enter primitives
+  (for-each (lambda (e)
+              (let ((sym (car e))
+                    (code (cadr e)))
+                (set-var "unused" sym 
+                         (_rib code _nil procedure-type))))
+            primitives0)
+
+  (hashtable-set! globals 'false _false)
+  (hashtable-set! globals 'true _true)
+  (hashtable-set! globals 'nil _nil)
+
   ;; Start
-  (let ((x (decode)))
-   (run (_field2 (_field0 x)) ;; instruction stream of main procedure
-        (_rib 0 0 (_rib 5 0 0))) ;; primordial continuation = halt
-   (when (eq? not-yet output-result)
-     (done-cb #t output-buf))
-   )) 
+  
+  (run (_field2 (_field0 code)) ;; instruction stream of main procedure
+       (_rib 0 0 (_rib 6 0 0))) ;; primordial continuation = halt
+  (when (eq? not-yet output-result)
+    (done-cb #t output-buf))
+   ) 
 
 
 )
