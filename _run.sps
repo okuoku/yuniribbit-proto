@@ -60,12 +60,12 @@
   (error "Cyclone: not yet ported."))
 
 
-(let* ((s (compile-program 0 (append runtime code)))
-       (c (generate-code "rvm" 0 #f #f s)))
+(let* ((s (compile-program 0 (append runtime code))))
   (define (test value code)
     (define codestr (sexp->string code))
     (write (list 'CODE: codestr)) (newline)
-    (rvm (string-append c "\n" codestr "\n")
+    (rvm s
+         (string-append codestr "\n")
          (lambda x
            (write (list 'EXIT: x)) (newline)
            (check-equal value (car x)))))
