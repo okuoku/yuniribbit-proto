@@ -1,32 +1,10 @@
 (library (yuniribbit rsc)
          (export compile-program)
          (import (yuni scheme)
-                 (yuni util files)
                  (yuni hashtables))
 
          
 ;;
-
-(define (pipe-through program output)
- (display "*** Minification is not supported with this Scheme system\n")
- (display "*** so the generated code was not minified.\n")
- (display "*** You might want to try running ")
- (display program)
- (display " manually.\n")
- output)
-
-
-
-(define (cmd-line)
- (command-line))
-
-
-(define (exit-program-normally)
- (exit 0))
-
-(define (exit-program-abnormally)
- (exit 1))
-
 
 (define (make-table)
   (make-symbol-hashtable))
@@ -61,30 +39,6 @@
 
 (define (symbol->str symbol)
   (table-ref uninterned-symbols symbol (symbol->string symbol)))
-
-
-(define (rsc-path-extension path)
-  (let loop ((i (- (string-length path) 1)))
-   (if (< i 0)
-     ""
-     (if (= (char->integer (string-ref path i)) 46) ;; #\.
-       (substring path i (string-length path))
-       (loop (- i 1))))))
-
-(define (rsc-path-directory path)
-  (let loop ((i (- (string-length path) 1)))
-   (if (< i 0)
-     "./"
-     (if (= (char->integer (string-ref path i)) 47) ;; #\/
-       (substring path 0 (+ i 1))
-       (loop (- i 1))))))
-
-(define (path-expand path dir)
-  (if (= (string-length dir) 0)
-    path
-    (if (= (char->integer (string-ref dir (- (string-length dir) 1))) 47) ;; #\/
-      (string-append dir path)
-      (string-append dir (string-append "/" path)))))
 
 (define (pp obj)
   (write obj)

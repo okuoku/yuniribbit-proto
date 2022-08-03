@@ -1,8 +1,7 @@
 (library (yuniribbit rvm)
          (export rvm)
          (import (yuni scheme)
-                 (yuni hashtables)
-                 (yuniribbit util debug-expand))
+                 (yuni hashtables))
 
 (define pair-type      0)
 (define procedure-type 1)
@@ -46,135 +45,6 @@
   (if (_pair? lst)
       (+ 1 (_length (_cdr lst)))
       0))
-
-
-(debug-expand/define
-   (define tracing #f)
-   (define step-count 0)
-   (define start-tracing 0)
-   (define next-stamp 0)
-
-   (define (trace-instruction name opnd)
-     (display name)
-     (if opnd
-         (begin
-           (display " ")
-           (show opnd)))
-     (newline))
-
-   (define (show obj)
-     (if (not (_rib? obj))
-         (display obj)
-         (let ((type (_field2 obj)))
-           (if (= type 4)
-               (begin (display "#") (show (_field0 obj)))
-               (case type
-                 ((0)
-                  (display "(")
-                  (show (_field0 obj))
-                  (let ((obj
-                         (let loop ((n 1) (obj (_field1 obj)))
-                           (if (and (_rib? obj) (= (_field2 obj) 0))
-                               (if (> n 4)
-                                   (begin
-                                     (display " ...")
-                                     _nil)
-                                   (begin
-                                     (display " ")
-                                     (show (_field0 obj))
-                                     (loop (+ n 1) (_field1 obj))))
-                               obj))))
-                    (if (not (eqv? obj _nil))
-                        (begin
-                          (display " . ")
-                          (show obj)))
-                    (display ")")))
-                 ((1)
-                  (if (_rib? (_field0 obj))
-                      (begin
-                        (display "#<procedure nparams=")
-                        (display (_field0 (_field0 obj)))
-                        (display ">"))
-                      (begin
-                        (display "#<primitive ")
-                        (display (_field0 obj))
-                        (display ">"))))
-                 ((2)
-                  (let ((obj (_field1 obj)))
-                    (if (and (_rib? obj)
-                             (= (_field2 obj) 3)
-                             (> (_field1 obj) 0))
-                        (let loop ((obj (_field0 obj)))
-                          (if (and (_rib? obj) (= (_field2 obj) 0))
-                              (begin
-                                (display (integer->char (_field0 obj)))
-                                (loop (_field1 obj)))))
-                        (begin
-                          (display "#<symbol ")
-                          (show obj)
-                          (display ">")))))
-                 ((3)
-                  (display "\"")
-                  (let loop ((obj (_field0 obj)))
-                    (if (and (_rib? obj) (= (_field2 obj) 0))
-                        (let ((c (_field0 obj)))
-                          (case c
-                            ((10) (display "\\n"))
-                            ((13) (display "\\r"))
-                            ((9)  (display "\\t"))
-                            ((92) (display "\\\\"))
-                            ((34) (display "\\\""))
-                            (else (display (integer->char c))))
-                          (loop (_field1 obj)))
-                        (display "\""))))
-                 ((5)
-                  (cond ((eqv? obj _false)
-                         (display "#f"))
-                        ((eqv? obj _true)
-                         (display "#t"))
-                        ((eqv? obj _nil)
-                         (display "()"))
-                        (else
-                         (display "[")
-                         (show (_field0 obj))
-                         (display ",")
-                         (show (_field1 obj))
-                         (display ",")
-                         (show (_field2 obj))
-                         (display "]"))))
-                 (else
-                  (display "[")
-                  (show (_field0 obj))
-                  (display ",")
-                  (show (_field1 obj))
-                  (display ",")
-                  (show (_field2 obj))
-                  (display "]")))))))
-
-   (define (start-step stack)
-     (set! step-count (+ step-count 1))
-     (if (>= step-count start-tracing) (set! tracing #t))
-     (if (not tracing)
-         (if (>= step-count next-stamp)
-             (begin
-               (set! next-stamp (exact (floor (+ (* next-stamp 1.01) 1))))
-               (display "@")
-               (display step-count)
-               (newline)))
-         (begin
-           (display "@")
-           (display step-count)
-           (display " STACK = (")
-           (let loop ((s stack) (sep ""))
-             (if (eqv? (_field2 s) 0)
-                 (begin
-                   (display sep)
-                   (show (_field0 s))
-                   (loop (_field1 s) " "))
-                 (begin
-                   (display ")")
-                   (newline)))))))
-   )
 
 (define (get-cont stack)
   (let loop ((stack stack))
@@ -279,16 +149,12 @@
      x))
 
   (define (run vals pc stack)
-    (debug-expand (start-step stack))
     (let ((instr (_field0 pc))
           (opnd (_field1 pc))
           (next (_field2 pc)))
       (case instr
 
         ((0) ;; jump/call
-         (debug-expand
-           (if tracing
-             (trace-instruction (if (eqv? 0 next) "jump" "call") opnd)))
          (let* ((proc (get-var stack opnd))
                 (code (_field0 proc)))
            (if (_rib? code)
@@ -345,27 +211,17 @@
                          stack))))))
 
         ((1) ;; set
-         (debug-expand
-           (if tracing
-             (trace-instruction "set" opnd)))
          (set-var stack opnd (_car stack))
          (run #f
               next
               (_cdr stack)))
 
         ((2) ;; get
-         (debug-expand
-           (if tracing
-             (trace-instruction "get" opnd)))
          (run #f
               next
               (_cons (get-var stack opnd) stack)))
 
         ((3) ;; const
-         (debug-expand
-           (if tracing
-             (trace-instruction "const" opnd)))
-
          (let ((v (cond
                     ((number? opnd) opnd)
                     ((null? opnd) _nil)
@@ -374,21 +230,12 @@
            (run #f next (_cons v stack))))
 
         ((4) ;; if
-         (debug-expand
-           (if tracing
-             (trace-instruction "if" #f)))
          (run #f
               (if (eqv? (_car stack) _false) next opnd)
               (_cdr stack)))
         ((5) ;; enter (yuniribbit)
-         (debug-expand
-           (if tracing
-             (trace-instruction "enter" opnd)))
          (run opnd next stack))
         (else ;; halt
-          (debug-expand
-            (if tracing
-              (trace-instruction "halt" #f)))
           #f))))
 
   (define primitives0 '((rib         0)
