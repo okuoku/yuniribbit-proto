@@ -278,7 +278,7 @@
      (set! pos (+ pos 1))
      x))
 
-  (define (run pc stack)
+  (define (run vals pc stack)
     (debug-expand (start-step stack))
     (let ((instr (_field0 pc))
           (opnd (_field1 pc))
@@ -295,28 +295,42 @@
 
              ;; calling a lambda
              (let ((new-cont (_rib 0 proc 0)))
-              (let loop ((nargs (_field0 code))
-                         (new-stack new-cont)
-                         (stack stack))
-                (if (< 0 nargs)
-                  (loop (- nargs 1)
-                        (_cons (_car stack) new-stack)
-                        (_cdr stack))
-                  (begin
-                    (if (_rib? next) ;; non-tail call?
-                      (begin
-                        (_field0-set! new-cont stack)
-                        (_field2-set! new-cont next))
-                      (let ((k (get-cont stack)))
-                       (_field0-set! new-cont (_field0 k))
-                       (_field2-set! new-cont (_field2 k))))
-                    (run (_field2 code)
-                         new-stack)))))
+              ;; Audit and construct arguments
+              (let* ((layout (_field0 code)) ;; was nargs param
+                     ;; argnc: "rest" argument count
+                     (argnc (if (and vals (< layout 0))
+                              (+ vals 1 layout)
+                              0))
+                     ;; nargs: physical argument count
+                     (nargs (if (< layout 0)
+                              (- 0 layout)
+                              layout)))
+                ;; Audit nargs
+                (when (and vals (< argnc 0) (< vals nargs))
+                  (error "Unmatched argument count" vals nargs))
+               (let loop ((nargs nargs)
+                          (new-stack new-cont)
+                          (stack stack))
+                 (if (< 0 nargs)
+                   (loop (- nargs 1)
+                         (_cons (_car stack) new-stack)
+                         (_cdr stack))
+                   (begin
+                     (if (_rib? next) ;; non-tail call?
+                       (begin
+                         (_field0-set! new-cont stack)
+                         (_field2-set! new-cont next))
+                       (let ((k (get-cont stack)))
+                        (_field0-set! new-cont (_field0 k))
+                        (_field2-set! new-cont (_field2 k))))
+                     (run #f (_field2 code)
+                          new-stack))))))
 
              ;; calling a primitive
              (let ((stack ((vector-ref primitives code) stack)))
                (and stack
-                    (run (if (_rib? next) ;; non-tail call?
+                    (run #f
+                         (if (_rib? next) ;; non-tail call?
                            next
                            (let ((cont (get-cont stack)))
                             (_field1-set! stack (_field0 cont))
@@ -328,14 +342,16 @@
            (if tracing
              (trace-instruction "set" opnd)))
          (set-var stack opnd (_car stack))
-         (run next
+         (run #f
+              next
               (_cdr stack)))
 
         ((2) ;; get
          (debug-expand
            (if tracing
              (trace-instruction "get" opnd)))
-         (run next
+         (run #f
+              next
               (_cons (get-var stack opnd) stack)))
 
         ((3) ;; const
@@ -348,19 +364,20 @@
                     ((null? opnd) _nil)
                     ((boolean? opnd) (if opnd _true _false))
                     (else opnd))))
-           (run next (_cons v stack))))
+           (run #f next (_cons v stack))))
 
         ((4) ;; if
          (debug-expand
            (if tracing
              (trace-instruction "if" #f)))
-         (run (if (eqv? (_car stack) _false) next opnd)
+         (run #f
+              (if (eqv? (_car stack) _false) next opnd)
               (_cdr stack)))
         ((5) ;; enter (yuniribbit)
          (debug-expand
            (if tracing
              (trace-instruction "enter" opnd)))
-         (run next stack))
+         (run opnd next stack))
         (else ;; halt
           (debug-expand
             (if tracing
@@ -460,7 +477,8 @@
 
   ;; Start
   
-  (run (_field2 (_field0 code)) ;; instruction stream of main procedure
+  (run #f ;; No values
+       (_field2 (_field0 code)) ;; instruction stream of main procedure
        (_rib 0 0 (_rib 6 0 0))) ;; primordial continuation = halt
   (when (eq? not-yet output-result)
     (done-cb #t output-buf))
