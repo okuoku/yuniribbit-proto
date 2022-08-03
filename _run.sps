@@ -96,6 +96,20 @@
                     (if (equal? x '(1234))
                       12345
                       99999)))))
+  (test 12345 '(exit
+                 (begin
+                   (define a (lambda x x))
+                   (let ((x (a 5678 1234)))
+                    (if (equal? x '(5678 1234))
+                      12345
+                      99999)))))
+  (test 12345 '(exit
+                 (begin
+                   (define a (lambda (x y . z) (cons x (cons y (cons z '())))))
+                   (let ((x (a 5678 1234 9999)))
+                    (if (equal? x '(5678 1234 (9999)))
+                      12345
+                      99999)))))
   )
 
 (check-finish)
