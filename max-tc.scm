@@ -868,6 +868,28 @@
 (define if-op        4)
 (define enter-op     5) ;; yuniribbit
 
+(define (encode-lambda-param params) ;; yuniribbit
+  (let loop ((cur params)
+             (code 0))
+    (cond 
+      ((pair? cur)
+       (loop (cdr cur) (+ code 1)))
+      ((null? cur) ;; (list? param) or ()
+       code)
+      (else
+        (- -1 code)))))
+
+(define (encode-lambda-args params) ;; yuniribbit
+  (let loop ((acc '())
+             (cur params))
+    (cond
+      ((pair? cur)
+       (loop (cons (car cur) acc) (cdr cur)))
+      ((null? cur)
+       (reverse acc))
+      (else
+        (reverse (cons cur acc))))))
+
 (define (comp cte expr cont)
 
   (cond ((symbol? expr)
@@ -895,9 +917,9 @@
                   (let ((params (cadr expr)))
                     (rib const-op
                          (make-procedure
-                          (rib (length params)
+                          (rib (encode-lambda-param params)
                                0
-                               (comp-begin (extend params
+                               (comp-begin (extend (encode-lambda-args params)
                                                    (cons #f
                                                          (cons #f
                                                                cte)))
