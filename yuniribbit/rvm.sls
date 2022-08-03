@@ -308,23 +308,30 @@
                 ;; Audit nargs
                 (when (and vals (< argnc 0) (< vals nargs))
                   (error "Unmatched argument count" vals nargs))
-               (let loop ((nargs nargs)
-                          (new-stack new-cont)
-                          (stack stack))
-                 (if (< 0 nargs)
-                   (loop (- nargs 1)
-                         (_cons (_car stack) new-stack)
-                         (_cdr stack))
-                   (begin
-                     (if (_rib? next) ;; non-tail call?
+               (let aloop ((acc _nil)
+                           (stack stack)
+                           (res argnc))
+                 (if (< 0 res)
+                   (aloop (_cons (_car stack) acc) (_cdr stack) (- res 1))
+                   (let loop ((nargs nargs)
+                              (new-stack new-cont)
+                              (stack (if (= argnc 0) 
+                                       stack
+                                       (_cons acc stack))))
+                     (if (< 0 nargs)
+                       (loop (- nargs 1)
+                             (_cons (_car stack) new-stack)
+                             (_cdr stack))
                        (begin
-                         (_field0-set! new-cont stack)
-                         (_field2-set! new-cont next))
-                       (let ((k (get-cont stack)))
-                        (_field0-set! new-cont (_field0 k))
-                        (_field2-set! new-cont (_field2 k))))
-                     (run #f (_field2 code)
-                          new-stack))))))
+                         (if (_rib? next) ;; non-tail call?
+                           (begin
+                             (_field0-set! new-cont stack)
+                             (_field2-set! new-cont next))
+                           (let ((k (get-cont stack)))
+                            (_field0-set! new-cont (_field0 k))
+                            (_field2-set! new-cont (_field2 k))))
+                         (run #f (_field2 code)
+                              new-stack))))))))
 
              ;; calling a primitive
              (let ((stack ((vector-ref primitives code) stack)))
