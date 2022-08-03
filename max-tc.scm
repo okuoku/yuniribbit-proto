@@ -713,13 +713,21 @@
         (begin
           (read-char) ;; skip ")"
           '())
-        (let ((first (read)))
-          (cons first (read-list))))))
+        (if (eqv? c 46) ;; #\. yuniribbit
+          (begin
+            (read-char) ;; skip "."
+            (let ((term (read)))
+             (peek-char-non-whitespace)
+             (read-char)
+             term))
+          (let ((first (read)))
+           (cons first (read-list)))))))
 
 (define (read-symbol)
   (let ((c (peek-char)))
     (if (or (eqv? c 40) ;; #\(
             (eqv? c 41) ;; #\)
+            (eqv? c 46) ;; #\. yuniribbit
             (%< c 33)) ;; whitespace or eof?
         '()
         (begin
