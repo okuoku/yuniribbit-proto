@@ -866,6 +866,7 @@
 (define get-op       2)
 (define const-op     3)
 (define if-op        4)
+(define enter-op     5) ;; yuniribbit
 
 (define (comp cte expr cont)
 
@@ -905,7 +906,7 @@
                           '())
                          (if (null? cte)
                              cont
-                             (gen-call 'close cont)))))
+                             (gen-call #f 'close cont)))))
 
 ;#; ;; support for begin special form
                  ((eqv? first 'begin)
@@ -963,7 +964,8 @@
                  (else
                   (let ((args (cdr expr)))
                     (if (symbol? first)
-                        (comp-call cte
+                        (comp-call 0
+                                   cte
                                    args
                                    (cons first cont))
                         (comp-bind cte
@@ -1002,10 +1004,11 @@
                  (comp-begin cte (cdr exprs) cont))
             cont)))
 
-(define (gen-call v cont)
-  (if (eqv? cont tail)
-      (rib jump/call-op v 0)      ;; jump
-      (rib jump/call-op v cont))) ;; call
+(define (gen-call argc v cont)
+  (let ((g (if (eqv? cont tail)
+             (rib jump/call-op v 0)       ;; jump
+             (rib jump/call-op v cont)))) ;; call
+    (if argc (rib enter-op argc g) g)))
 
 (define (gen-assign v cont)
   (rib set-op v (gen-noop cont)))
@@ -1018,17 +1021,18 @@
       (field2 cont) ;; remove pop
       (rib const-op 0 cont))) ;; add dummy value for set!
 
-(define (comp-call cte exprs var-cont)
+(define (comp-call argc cte exprs var-cont)
   (if (pair? exprs)
       (comp cte
             (car exprs)
-            (comp-call (cons #f cte)
+            (comp-call (+ argc 1)
+                       (cons #f cte)
                        (cdr exprs)
                        var-cont))
       (let ((var (car var-cont)))
         (let ((cont (cdr var-cont)))
           (let ((v (lookup var cte 0)))
-            (gen-call v cont))))))
+            (gen-call argc v cont))))))
 
 (define (lookup var cte i)
   (if (pair? cte)
