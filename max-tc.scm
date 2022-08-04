@@ -236,21 +236,6 @@
 ;;(define (exact? obj) #t)
 ;;(define (inexact? obj) #f)
 
-(define (+ x y)
-  (if (and (integer? x) (integer? y))
-      (%+ x y)
-      (type-error)))
-
-(define (- x y)
-  (if (and (integer? x) (integer? y))
-      (%- x y)
-      (type-error)))
-
-(define (* x y)
-  (if (and (integer? x) (integer? y))
-      (%* x y)
-      (type-error)))
-
 (define (quotient x y)
   (if (and (integer? x) (integer? y))
       (if (eqv? y 0)
