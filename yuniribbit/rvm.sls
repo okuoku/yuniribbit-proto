@@ -9,6 +9,7 @@
 (define string-type    3)
 (define vector-type    4)
 (define singleton-type 5)
+(define values-type    6) ;; yuniribbit (lis 0 TYPE)
 
 (define (_rib? x) (vector? x))
 (define (_rib x y z) (vector x y z))
@@ -209,15 +210,40 @@
                               new-stack))))))))
 
              ;; calling a primitive
-             (let ((stack ((vector-ref primitives code) vals stack)))
-               (and stack
-                    (run #f
-                         (if (_rib? next) ;; non-tail call?
-                           next
-                           (let ((cont (get-cont stack)))
-                            (_field1-set! stack (_field0 cont))
-                            (_field2 cont)))
-                         stack))))))
+             (if (< code 0) 
+               ;; calling special primitive that handle multiple values
+               (case code
+                 ((-12) ;; (apply-values consumer v*)
+                  (let* ((v*       (_car stack)) (stack (_cdr stack))
+                         (consumer (_car stack)) (stack (_cdr stack))
+                         (trampoline0 (_rib consumer 0 0))
+                         ;; 0 = jump/call-op
+                         (trampoline (_rib 0 trampoline0 next)))
+                    (cond
+                      ((and (_rib? v*) (eqv? values-type (_field2 v*)))
+                       (let loop ((n 0)
+                                  (cur (_field0 v*))
+                                  (stack stack))
+                         (if (eqv? _nil cur)
+                           (run n trampoline stack)
+                           (loop (+ n 1) 
+                                 (_cdr cur) 
+                                 (_cons (_car cur) stack)))))
+                      (else ;; standard apply
+                        (run 1 trampoline (_cons v* stack))))))
+                 
+                 (else (error "Invalid special primitive" vals pc stack)))
+
+               ;; calling std primitive
+               (let ((stack ((vector-ref primitives code) vals stack)))
+                (and stack
+                     (run #f
+                          (if (_rib? next) ;; non-tail call?
+                            next
+                            (let ((cont (get-cont stack)))
+                             (_field1-set! stack (_field0 cont))
+                             (_field2 cont)))
+                          stack)))))))
 
         ((1) ;; set
          (set-var stack opnd (_car stack))
@@ -268,6 +294,9 @@
                         (getchar     18)
                         (putchar     19)
                         (exit        20)
+                        ;; yuniribbit
+                        (values      21)
+                        (list->values 22)
                         ))
 
 
@@ -318,7 +347,23 @@
 
             (prim1/term (lambda (x) ;; 20
                           (set! output-result x)
-                          (done-cb output-result output-buf)))))
+                          (done-cb output-result output-buf)))
+            ;; yuniribbit
+            ;; 21: values
+            (lambda (vals stack)
+              (cond
+                ((= vals 1) stack)
+                (else (let loop ((n vals)
+                                 (cur _nil)
+                                 (stack stack))
+                        (if (= n 0)
+                          (_cons (_rib cur 0 values-type) stack)
+                          (loop (- n 1) 
+                                (_cons (_car stack) cur) 
+                                (_cdr stack)))))))
+            ;; 22: list->values
+            (lambda (vals stack)
+              (_cons (_rib (_car stack) 0 values-type) (_cdr stack)))))
 
   (for-each (lambda (e)
               (let ((sym (car e)))
@@ -333,6 +378,8 @@
                 (set-var "unused" sym 
                          (_rib code _nil procedure-type))))
             primitives0)
+
+  (set-var "unused" 'apply-values (_rib -12 _nil procedure-type))
 
   (hashtable-set! globals 'false _false)
   (hashtable-set! globals 'true _true)
