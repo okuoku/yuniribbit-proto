@@ -51,28 +51,28 @@
     (if (_rib? (_field2 stack)) stack (loop (_cdr stack)))))
 
 (define (prim0 f)
-  (lambda (stack)
+  (lambda (vals stack)
     (_cons (f) stack)))
 
 (define (prim1 f)
-  (lambda (stack)
+  (lambda (vals stack)
     (let* ((x (_car stack)) (stack (_cdr stack)))
       (_cons (f x) stack))))
 
 (define (prim1/term f)
-  (lambda (stack)
+  (lambda (vals stack)
     (let* ((x (_car stack)) (stack (_cdr stack)))
      (f x)
      #f)))
 
 (define (prim2 f)
-  (lambda (stack)
+  (lambda (vals stack)
     (let* ((y (_car stack)) (stack (_cdr stack))
            (x (_car stack)) (stack (_cdr stack)))
       (_cons (f x y) stack))))
 
 (define (prim3 f)
-  (lambda (stack)
+  (lambda (vals stack)
     (let* ((z (_car stack)) (stack (_cdr stack))
            (y (_car stack)) (stack (_cdr stack))
            (x (_car stack)) (stack (_cdr stack)))
@@ -200,7 +200,7 @@
                               new-stack))))))))
 
              ;; calling a primitive
-             (let ((stack ((vector-ref primitives code) stack)))
+             (let ((stack ((vector-ref primitives code) vals stack)))
                (and stack
                     (run #f
                          (if (_rib? next) ;; non-tail call?
@@ -265,10 +265,10 @@
   (define primitives
     (vector (prim3 _rib)             ;; 0
             (prim1 (lambda (x) x))   ;; 1
-            _cdr                     ;; 2
+            (lambda (vals stack) (_cdr stack))             ;; 2
             (prim2 (lambda (y x) x)) ;; 3
 
-            (lambda (stack) ;; 4
+            (lambda (vals stack) ;; 4
               (let* ((x (_car stack)) (stack (_cdr stack)))
                (_cons (_rib (_field0 x) stack procedure-type) stack)))
 
