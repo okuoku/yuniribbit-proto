@@ -174,4 +174,7 @@ or
 ;#; ;; support for cond special form
 cond
 
+;; yuniribbit
+call-with-values
+apply
 )

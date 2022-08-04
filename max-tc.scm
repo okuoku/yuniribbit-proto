@@ -1069,6 +1069,26 @@
 (define (eval expr)
   ((compile expr)))
 
+;;;----------------------------------------------------------------------------
+
+;; yuniribbit
+(define (apply f . param)
+  (let loop ((acc '())
+             (cur param))
+    (cond
+      ((pair? param)
+       (if (pair? (cdr cur))
+         (loop (cons (car cur) acc) (cdr cur))
+         (apply-values f (list->values (append (reverse acc) (car cur))))))
+      (else
+        (error "apply: Invalid argument")))))
+
+(define (call-with-values producer consumer)
+  (let ((x (producer)))
+   (apply-values consumer x)))
+
+;;;----------------------------------------------------------------------------
+
 (define (repl)
   (putchar2 62 32) ;; #\> and space
   (let ((expr (read)))
@@ -1100,3 +1120,4 @@
     (lambda () #f))))
 
 ;;;----------------------------------------------------------------------------
+
