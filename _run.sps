@@ -116,6 +116,42 @@
                     (if (equal? x 10)
                       12345
                       99999)))))
+  (test 12345 '(exit
+                 (begin
+                   (define a (lambda x x))
+                   (let ((x (apply-values a (values 1234 5678))))
+                    (if (equal? x '(1234 5678))
+                      12345
+                      99999)))))
+  (test 12345 '(exit
+                 (begin
+                   (define a (lambda (dummy x) x))
+                   (let ((x (apply-values a (values 1234 5678))))
+                    (if (equal? x 5678)
+                      12345
+                      99999)))))
+  (test 12345 '(exit
+                 (begin
+                   (define a (lambda (dummy x) x))
+                   (let ((x (apply-values a (list->values '(1234 5678)))))
+                    (if (equal? x 5678)
+                      12345
+                      99999)))))
+  (test 12345 '(exit
+                 (begin
+                   (define a (lambda x x))
+                   (let ((x (apply-values a 1234)))
+                    (if (equal? x '(1234))
+                      12345
+                      99999)))))
+  (test 12345 '(exit
+                 (begin
+                   (call-with-values
+                     (lambda () (values 1234 5678))
+                     (lambda (x y)
+                       (if (and (equal? x 1234) (equal? y 5678))
+                         12345
+                         99999))))))
   )
 
 (check-finish)
