@@ -78,6 +78,15 @@
            (x (_car stack)) (stack (_cdr stack)))
       (_cons (f x y z) stack))))
 
+(define (primn f)
+  (lambda (vals stack)
+    (let loop ((rest vals)
+               (stack stack)
+               (args '()))
+      (if (= rest 0)
+        (_cons (apply f args) stack)
+        (loop (- rest 1) (_cdr stack) (cons (_car stack) args))))))
+
 (define (boolean x)
   (if x _true _false))
 
@@ -290,9 +299,9 @@
                        (else
                          (boolean (eqv? x y))))))
             (prim2 (lambda (x y) (boolean (< x y)))) ;; 13
-            (prim2 +) ;; 14
-            (prim2 -) ;; 15
-            (prim2 *) ;; 16
+            (primn +) ;; 14
+            (primn -) ;; 15
+            (primn *) ;; 16
             (prim2 quotient) ;; 17
 
             (prim0 (lambda () ;; 18
