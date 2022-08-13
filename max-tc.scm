@@ -23,9 +23,45 @@
 (define string-type    3)
 (define vector-type    4)
 (define singleton-type 5)
+;; 6 is reserved for values-type (yuniribbit)
+(define char-type      7) ;; yuniribbit (num 0 TYPE)
+(define bytevector-type 8) ;; yuniribbit
+(define simple-struct-type 9) ;; yuniribbit
 
 (define (instance? type) (lambda (o) (and (rib? o) (eqv? (field2 o) type))))
 
+
+;;; (yuniribbit) Additional types
+
+(define (char? c)
+  (and (rib? c)
+       (eqv? (field2 c) char-type)))
+(define bytevector? (instance? bytevector-type))
+(define simple-struct? (instance? simple-struct-type))
+
+(define (char->integer c)
+  (if (char? c)
+    (field0 c)
+    (type-error)))
+
+(define (integer->char n)
+  (if (integer? n)
+    (rib n 0 char-type)
+    (type-error)))
+
+;; FIXME: Multiarg
+(define (char=? c0 c1)
+  (= (char->integer c0) (char->integer c1)))
+(define (char<? c0 c1)
+  (< (char->integer c0) (char->integer c1)))
+(define (char>? c0 c1)
+  (> (char->integer c0) (char->integer c1)))
+(define (char<=? c0 c1)
+  (<= (char->integer c0) (char->integer c1)))
+(define (char>=? c0 c1)
+  (>= (char->integer c0) (char->integer c1)))
+
+;;;----------------------------------------------------------------------------
 ;;;----------------------------------------------------------------------------
 
 ;; Booleans (R4RS section 6.1).
@@ -357,7 +393,7 @@
 
 (define (string->number str)
   (if (string? str)
-      (let ((lst (string->list str)))
+      (let ((lst (conv-char->int (string->list str))))
         (if (null? lst)
             #f
             (if (eqv? (car lst) 45)
@@ -385,11 +421,11 @@
 
 ;;(define char? integer?)
 
-(define char=? eqv?)
-(define char<? <)
-(define char>? >)
-(define char<=? <=)
-(define char>=? >=)
+;(define char=? eqv?)
+;(define char<? <)
+;(define char>? >)
+;(define char<=? <=)
+;(define char>=? >=)
 
 ;;(define char-ci=? eqv?)
 ;;(define char-ci<? <)
@@ -403,8 +439,8 @@
 ;;(define (char-upper-case? c) ...)
 ;;(define (char-lower-case? c) ...)
 
-(define char->integer id)
-(define integer->char id)
+;;(define char->integer id)
+;;(define integer->char id)
 
 ;;(define (char-upcase c) ...)
 ;;(define (char-downcase c) ...)
@@ -415,21 +451,37 @@
 
 (define string? (instance? string-type))
 
+(define (conv-char->int lst)
+  (let loop ((acc '())
+             (cur lst))
+    (if (null? cur)
+      (reverse acc)
+      (loop (cons (char->integer (car cur)) acc)
+            (cdr cur)))))
+
+(define (conv-int->char lst)
+  (let loop ((acc '())
+             (cur lst))
+    (if (null? cur)
+      (reverse acc)
+      (loop (cons (integer->char (car cur)) acc)
+            (cdr cur)))))
+
 (define (list->string lst)
   (if (char-list? lst)
-      (rib lst (length lst) string-type)
+      (rib (conv-char->int lst) (length lst) string-type)
       (type-error)))
 
 (define (char-list? lst)
   (if (pair? lst)
       (let ((c (car lst)))
-        (and (integer? c)
+        (and (char? c)
              (char-list? (cdr lst))))
       #t))
 
 (define (string->list str)
   (if (string? str)
-      (field0 str)
+      (conv-int->char (field0 str))
       (type-error)))
 
 (define (string-length str)
@@ -439,16 +491,16 @@
 
 (define (string-ref str i)
   (if (string? str)
-      (list-ref (field0 str) i)
+      (integer->char (list-ref (field0 str) i))
       (type-error)))
 
 (define (string-set! str i x)
   (if (string? str)
-      (list-set! (field0 str) i x)
+      (list-set! (field0 str) i (char->integer x))
       (type-error)))
 
 (define (make-string k)
-  (list->string (make-list k 32)))
+  (list->string (make-list (char->integer k) 32)))
 
 ;;(define (string . args) ...)
 
@@ -490,7 +542,7 @@
 (define (substring-aux str start end tail)
   (if (< start end)
       (let ((i (%- end 1)))
-        (substring-aux str start i (cons (string-ref str i) tail)))
+        (substring-aux str start i (cons (char->integer (string-ref str i)) tail)))
       (list->string tail)))
 
 (define (string-append str1 str2)
@@ -605,8 +657,9 @@
 
 ;; Character I/O (characters are represented with integers).
 
-(define eof -1)
+(define eof _eof-object)
 (define (eof-object? obj) (eqv? obj eof))
+(define (eof-object) _eof-object) ;; yuniribbit
 
 (define empty -2)
 (define buffer empty)
@@ -637,6 +690,17 @@
 
 ;; The read procedure.
 
+(define (charfilt0 c)
+  (if (eof-object? c)
+    c
+    (char->integer c)))
+
+(define (peek-char0)
+  (charfilt0 (peek-char)))
+
+(define (read-char0)
+  (charfilt0 (read-char)))
+
 (define (read)
   (let ((c (peek-char-non-whitespace)))
     (cond ((%< c 0)
@@ -646,7 +710,7 @@
            (read-list))
           ((eqv? c 35) ;; #\#
            (read-char) ;; skip "#"
-           (let ((c (peek-char)))
+           (let ((c (peek-char0)))
              (cond ((eqv? c 102) ;; #\f
                     (read-char) ;; skip "f"
                     #f)
@@ -655,7 +719,7 @@
                     #t)
                    ((or (eqv? c 120) (eqv? c 88)) ;; #\x or #\X
                     (read-char) ;; skip "x"
-                    (let ((c (peek-char)))
+                    (let ((c (peek-char0)))
                       (if (eqv? c 45)
                           (begin
                             (read-char)
@@ -671,13 +735,13 @@
            (list->string (read-chars '())))
           (else
            (read-char) ;; skip first char
-           (let ((s (list->string (cons c (read-symbol)))))
+           (let ((s (list->string (cons (integer->char c) (read-symbol)))))
              (let ((n (string->number s)))
                (or n
                    (string->symbol s))))))))
 
 (define (read-hex accu)
-  (let ((c (peek-char)))
+  (let ((c (peek-char0)))
     (if (and (%< 47 c) (%< c 58))
         (begin
           (read-char)
@@ -709,7 +773,7 @@
            (cons first (read-list)))))))
 
 (define (read-symbol)
-  (let ((c (peek-char)))
+  (let ((c (peek-char0)))
     (if (or (eqv? c 40) ;; #\(
             (eqv? c 41) ;; #\)
             (eqv? c 46) ;; #\. yuniribbit
@@ -717,10 +781,10 @@
         '()
         (begin
           (read-char)
-          (cons c (read-symbol))))))
+          (cons (integer->char c) (read-symbol))))))
 
 (define (read-chars lst)
-  (let ((c (read-char)))
+  (let ((c (read-char0)))
     (cond ((eof-object? c)
            '())
           ((eqv? c 34) ;; #\"
@@ -733,18 +797,18 @@
              (read-chars
               (cons (cond
                      ;#; ;; support for \n in strings
-                     ((eqv? c2 110) 10) ;; #\n
+                     ((eqv? c2 110) (integer->char 10)) ;; #\n
                      ;#; ;; support for \r in strings
-                     ((eqv? c2 114) 13) ;; #\r
+                     ((eqv? c2 114) (integer->char 13)) ;; #\r
                      ;#; ;; support for \t in strings
-                     ((eqv? c2 116) 9)  ;; #\t
+                     ((eqv? c2 116) (integer->char 9))  ;; #\t
                      (else          c2))
                     lst))))
           (else
-           (read-chars (cons c lst))))))
+           (read-chars (cons (integer->char c) lst))))))
 
 (define (peek-char-non-whitespace)
-  (let ((c (peek-char)))
+  (let ((c (peek-char0)))
     (if (eof-object? c) ;; eof?
         -1
         (if (%< 32 c) ;; above #\space ?
@@ -756,7 +820,7 @@
               (peek-char-non-whitespace))))))
 
 (define (skip-comment)
-  (let ((c (read-char)))
+  (let ((c (read-char0)))
     (if (%< c 0) ;; eof?
         c
         (if (eqv? c 10) ;; #\newline

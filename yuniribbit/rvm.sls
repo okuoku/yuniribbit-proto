@@ -10,6 +10,12 @@
 (define vector-type    4)
 (define singleton-type 5)
 (define values-type    6) ;; yuniribbit (lis 0 TYPE)
+(define char-type      7) ;; yuniribbit
+(define bytevector-type 8) ;; yuniribbit
+(define simple-struct-type 9) ;; yuniribbit
+
+(define (_integer->char n)
+  (_rib n 0 char-type))
 
 (define (_rib? x) (vector? x))
 (define (_rib x y z) (vector x y z))
@@ -36,6 +42,7 @@
 (define _false (_rib "false" 0 singleton-type))
 (define _true  (_rib "true" 0 singleton-type))
 (define _nil   (_rib "nil" 0 singleton-type))
+(define _eof-object (_rib "eof-object" 0 singleton-type))
 
 (define (_list-tail lst i)
   (if (< 0 i)
@@ -156,7 +163,7 @@
   (define (get-byte)
     (let ((x (char->integer (string-ref input pos))))
      (set! pos (+ pos 1))
-     x))
+     (_integer->char x)))
 
   (define (run vals pc stack)
     (let ((instr (_field0 pc))
@@ -384,6 +391,7 @@
   (hashtable-set! globals 'false _false)
   (hashtable-set! globals 'true _true)
   (hashtable-set! globals 'nil _nil)
+  (hashtable-set! globals '_eof-object _eof-object)
 
   ;; Start
   
