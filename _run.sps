@@ -152,6 +152,9 @@
                        (if (and (equal? x 1234) (equal? y 5678))
                          12345
                          99999))))))
+  (test 12345 '(exit
+                 (begin (write (integer->char 50))
+                        12345)))
   )
 
 (check-finish)

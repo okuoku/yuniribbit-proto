@@ -847,6 +847,9 @@
          (write (vector->list o)))
         ((procedure? o)
          (putchar2 35 112)) ;; #p
+        ((char? o) ;; yuniribbit
+         (putchar2 35 92) ;; #\
+         (putchar (char->integer o)))
         (else
          ;; must be a number
          (display (number->string o)))))
@@ -867,7 +870,7 @@
       (let ((c (car lst)))
         (putchar
          (cond ((not escape?)
-                c)
+                (char->integer c))
                ;#; ;; support for \n in strings
                ((eqv? c 10) ;; #\newline
                 (putchar 92) ;; #\\
@@ -883,15 +886,15 @@
                ((or (eqv? c 34) ;; #\"
                     (eqv? c 92)) ;; #\\
                 (putchar 92) ;; #\\
-                c)
+                (char->integer c))
                (else
-                c)))
+                (char->integer c))))
         (write-chars (cdr lst) escape?))
       #f))
 
 (define (write-char c)
-  (if (integer? c)
-      (putchar c)
+  (if (char? c)
+      (putchar (char->integer c))
       (type-error)))
 
 (define (newline)
