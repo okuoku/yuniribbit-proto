@@ -10,12 +10,9 @@
 (define vector-type    4)
 (define singleton-type 5)
 (define values-type    6) ;; yuniribbit (lis 0 TYPE)
-(define char-type      7) ;; yuniribbit
+;; 7 was char-type
 (define bytevector-type 8) ;; yuniribbit
 (define simple-struct-type 9) ;; yuniribbit
-
-(define (_integer->char n)
-  (_rib n 0 char-type))
 
 (define (_rib? x) (vector? x))
 (define (_rib x y z) (vector x y z))
@@ -163,7 +160,7 @@
   (define (get-byte)
     (let ((x (char->integer (string-ref input pos))))
      (set! pos (+ pos 1))
-     (_integer->char x)))
+     (integer->char x)))
 
   (define (run vals pc stack)
     (let ((instr (_field0 pc))
@@ -304,6 +301,9 @@
                         ;; yuniribbit
                         (values      21)
                         (list->values 22)
+                        (char?       23)
+                        (char->integer 24)
+                        (integer->char 25)
                         ))
 
 
@@ -370,7 +370,14 @@
                                 (_cdr stack)))))))
             ;; 22: list->values
             (lambda (vals stack)
-              (_cons (_rib (_car stack) 0 values-type) (_cdr stack)))))
+              (_cons (_rib (_car stack) 0 values-type) (_cdr stack)))
+            ;; 23: char?
+            (prim1 (lambda (c) (boolean (char? c))))
+            ;; 24: char->integer
+            (prim1 char->integer)
+            ;; 25: integer->char
+            (prim1 integer->char)
+            ))
 
   (for-each (lambda (e)
               (let ((sym (car e)))

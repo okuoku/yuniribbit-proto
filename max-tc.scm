@@ -24,7 +24,7 @@
 (define vector-type    4)
 (define singleton-type 5)
 ;; 6 is reserved for values-type (yuniribbit)
-(define char-type      7) ;; yuniribbit (num 0 TYPE)
+;; 7 was char-type
 (define bytevector-type 8) ;; yuniribbit
 (define simple-struct-type 9) ;; yuniribbit
 
@@ -33,21 +33,8 @@
 
 ;;; (yuniribbit) Additional types
 
-(define (char? c)
-  (and (rib? c)
-       (eqv? (field2 c) char-type)))
 (define bytevector? (instance? bytevector-type))
 (define simple-struct? (instance? simple-struct-type))
-
-(define (char->integer c)
-  (if (char? c)
-    (field0 c)
-    (type-error)))
-
-(define (integer->char n)
-  (if (integer? n)
-    (rib n 0 char-type)
-    (type-error)))
 
 ;; FIXME: Multiarg
 (define (char=? c0 c1)
@@ -262,7 +249,7 @@
 
 ;; Numbers (R4RS section 6.5).
 
-(define (integer? obj) (not (rib? obj)))
+(define (integer? obj) (not (and (rib? obj) (char? obj))))
 
 ;;(define rational? integer?)
 ;;(define real? rational?)
