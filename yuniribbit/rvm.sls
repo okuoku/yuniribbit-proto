@@ -83,6 +83,15 @@
            (x (_car stack)) (stack (_cdr stack)))
       (_cons (f x y z) stack))))
 
+(define (prim5 f)
+  (lambda (vals stack)
+    (let* ((v (_car stack)) (stack (_cdr stack))
+           (u (_car stack)) (stack (_cdr stack))
+           (z (_car stack)) (stack (_cdr stack))
+           (y (_car stack)) (stack (_cdr stack))
+           (x (_car stack)) (stack (_cdr stack)))
+      (_cons (f x y z u v) stack))))
+
 (define (primn f)
   (lambda (vals stack)
     (let loop ((rest vals)
@@ -304,6 +313,12 @@
                         (char?       23)
                         (char->integer 24)
                         (integer->char 25)
+                        (vec-copy    26)
+                        (vec-copy!   27)
+                        (vec-ref     28)
+                        (vec-set!    29)
+                        (vec-new     30)
+                        (vec-length  31)
                         ))
 
 
@@ -377,6 +392,12 @@
             (prim1 char->integer)
             ;; 25: integer->char
             (prim1 integer->char)
+            ;; 26: (vec-copy vec start end) ;; -1 for full copy
+            ;; 27: (vec-copy! tgt loc src start end)
+            ;; 28: (vec-ref vec idx)
+            ;; 29: (vec-set! vec idx obj)
+            ;; 30: (vec-new tag k)
+            ;; 31: (vec-length vec)
             ))
 
   (for-each (lambda (e)
