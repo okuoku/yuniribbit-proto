@@ -50,7 +50,6 @@
     (string-append (path-basename source) ".expand.bin")))
 
 ;; FIXME: Hardcoded alias map
-(yunife-add-alias-map! fe 'yuni 'yunife-yuni)
 (yunife-add-alias-map! fe 'yunivm 'yunife-yunivm)
 
 ;; Set libpath

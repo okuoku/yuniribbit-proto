@@ -4,7 +4,7 @@ set(YUNIBUILD /home/oku/yuni)
 set(input /home/oku/repos/yuni/tests/scheme/core0.sps)
 
 set(libargs)
-foreach(e lib lib-compat)
+foreach(e lib lib-compat lib-r7c)
     list(APPEND libargs -libpath ${ROOT}/${e})
 endforeach()
 
@@ -20,6 +20,7 @@ execute_process(
     -LIBPATH ${ROOT}/lib
     -LIBPATH ${CMAKE_CURRENT_LIST_DIR}
     _expand.sps
+    -libpath ${CMAKE_CURRENT_LIST_DIR}/runtime
     ${libargs}
     -source
     ${input}
