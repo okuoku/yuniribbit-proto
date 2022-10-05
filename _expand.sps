@@ -1,10 +1,11 @@
 (import (yuni scheme)
         (yuni util files)
+        (yuni io drypack)
         (yunife core))
 
 (define libpath '())
 (define source #f)
-(define out #f)
+(define outbin #f)
 (define args (command-line))
 (define fe (make-yunife))
 
@@ -26,6 +27,12 @@
            (exit 1))
          (set! source (car d))
          (set! args (cdr d)))
+        ((string=? "-out" a)
+         (unless (pair? d)
+           (display "Error: -out requires an output file\n")
+           (exit 1))
+         (set! outbin (car d))
+         (set! args (cdr d)))
         (else (set! args d))))
     (consume-args)))
 
@@ -35,12 +42,12 @@
 
 (unless source
   (display "No source specified\n")
-  (display "Specify source with -source <SOURCE>\n"))
+  (display "Specify source with -source <SOURCE>\n")
+  (exit 1))
 
-(set! out
-  (string-append (path-basename source) ".expand.scm"))
-
-(write (list 'OUT source '=> out)) (newline)
+(unless outbin
+  (set! outbin
+    (string-append (path-basename source) ".expand.bin")))
 
 ;; FIXME: Hardcoded alias map
 (yunife-add-alias-map! fe 'yuni 'yunife-yuni)
@@ -52,12 +59,24 @@
 ;; Load source
 (yunife-load! fe source)
 
-;; Emit expanded code
-(when (file-exists? out)
-  (delete-file out))
+;; Emit expanded code (in binary)
+(when (file-exists? outbin)
+  (delete-file outbin))
 
 (let ((c (yunife-get-library-code fe #t)))
- (call-with-output-file
-   out
+ (call-with-port 
+   (open-binary-output-file outbin)
    (lambda (p)
-     (write c p))))
+     (drypack-put p c))))
+
+;; Readback test
+(let ((c (yunife-get-library-code fe #t)))
+ (call-with-port
+   (open-binary-input-file outbin)
+   (lambda (p)
+     (let ((x (drypack-get p)))
+      (unless (equal? x c)
+        (display "ERROR: Packed message did not match\n")
+        (exit -1))))))
+
+(write (list 'OUTBIN source '=> outbin)) (newline)
