@@ -52,6 +52,11 @@
 ;; FIXME: Hardcoded alias map
 (yunife-add-alias-map! fe 'yunivm 'yunife-yunivm)
 
+(yunife-add-primitives! fe
+                        '(rsc-core-syntax/primitives)
+                        (map (lambda (e) (cons e #f))
+                             '(let let* letrec define and or cond)))
+
 ;; Set libpath
 (for-each (lambda (e) (yunife-add-path! fe e)) libpath)
 
