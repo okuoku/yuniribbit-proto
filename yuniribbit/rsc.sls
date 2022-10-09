@@ -553,7 +553,7 @@
                                            '()))
                                (cdr expr))))))
 
-                 ((eqv? first 'letrec)
+                 ((or (eqv? first 'letrec) (eqv? first 'letrec*))
                   (let ((bindings (cadr expr)))
                     (expand-expr
                      (cons 'let
