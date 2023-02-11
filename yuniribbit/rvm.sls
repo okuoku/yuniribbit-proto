@@ -319,6 +319,7 @@
                         (vec-set!    29)
                         (vec-new     30)
                         (vec-length  31)
+                        (vec-fill!   32)
                         ))
 
 
@@ -398,6 +399,7 @@
             ;; 29: (vec-set! vec idx obj)
             ;; 30: (vec-new tag k)
             ;; 31: (vec-length vec)
+            ;; 32: (vec-fill! vec obj from to)
             ))
 
   (for-each (lambda (e)
