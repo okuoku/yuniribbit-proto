@@ -15,6 +15,7 @@ get_filename_component(nam ${input} NAME_WE)
 set(expanded ${nam}.expand.bin)
 set(compiled ${nam}.compiled.bin)
 
+# Expand
 execute_process(
     COMMAND ${YUNIBUILD}/run-${impl}.sh
     -LIBPATH ${ROOT}/lib
@@ -33,7 +34,7 @@ if(rr)
     message(FATAL_ERROR "Expand error: ${rr}")
 endif()
 
-
+# Compile
 execute_process(
     COMMAND ${YUNIBUILD}/run-${impl}.sh
     -LIBPATH ${ROOT}/lib
@@ -45,4 +46,8 @@ execute_process(
     ${compiled}
     RESULT_VARIABLE rr
     )
+
+if(rr)
+    message(FATAL_ERROR "Compile error: ${rr}")
+endif()
 
