@@ -1,0 +1,25 @@
+(library (r7c heap pair)
+  (export pair? null? cons car cdr caar cadr cdar cddr
+          set-car! set-cdr!)
+  (import (rsc-core-syntax)
+          (r7c core error)
+          (rvm-primitives))
+
+  ;; pair-type = 0
+  (define (pair? x)
+    (and (rib? x)
+         (eqv? (field2 x) 0)))
+  (define (require-pair p)
+    (if (pair? p)
+        #t
+        (error "Pair required")))
+  (define (cons a d) (rib a d 0))
+  (define (car p) (require-pair p) (field0 p))
+  (define (cdr p) (require-pair p) (field1 p))
+  (define (set-car! p x) (require-pair p) (field0-set! p x))
+  (define (set-cdr! p x) (require-pair p) (field1-set! p x))
+  (define (caar p) (car (car p)))
+  (define (cadr p) (car (cdr p)))
+  (define (cdar p) (cdr (car p)))
+  (define (cddr p) (cdr (cdr p)))
+  )
