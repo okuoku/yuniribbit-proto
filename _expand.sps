@@ -36,6 +36,51 @@
         (else (set! args d))))
     (consume-args)))
 
+(define corelibs
+  '((yunivm-core-syntax) 
+    (rsc-core-syntax) 
+    (rsc-core-syntax/primitives)
+    (rvm-primitives)))
+
+(define (merge-output fe)
+  ;; NB: We have added yunife output of (import ...) but we should do
+  ;;     inverse; add a method to query imported library of the expanded
+  ;;     library and remove (import ...) from program/library.
+  ;; FIXME: ... and why not move this to yunife anyway
+  (define outseq '())
+  (define loaded corelibs)
+  (define (code libname) (yunife-get-library-code fe libname))
+  (define (addloaded! libname)
+    (write (list 'ADD: libname)) (newline)
+    (set! loaded (append loaded (list libname))))
+  (define (loaded? libname)
+    (let loop ((x loaded))
+     (and (pair? x)
+          (or (equal? (car x) libname)
+              (loop (cdr x))))))
+
+  (define (loadlib! libname)
+    (unless (loaded? libname)
+      (write (list 'REALIZE: libname)) (newline)
+      (process libname)))
+
+  (define (process libname)
+    (let ((seq (code libname)))
+     (cond
+       ((and (pair? seq) (pair? (car seq))
+             (eq? 'import (caar seq)))
+        (let ((libs (cdar seq)))
+         (for-each loadlib! libs))
+        (set! outseq (append outseq (cdr seq)))
+        (when (pair? libname)
+          (addloaded! libname)))
+
+       (else
+         (error "Malformed library" libname)))))
+
+  (process #t)
+  outseq)
+
 (write (list 'ARGS: args)) (newline)
 
 (consume-args)
@@ -67,19 +112,19 @@
 (when (file-exists? outbin)
   (delete-file outbin))
 
-(let ((c (yunife-get-library-code fe #t)))
+(let ((total (merge-output fe)))
+ ;; Output expanded sexp
  (call-with-port 
    (open-binary-output-file outbin)
    (lambda (p)
-     (drypack-put p c))))
+     (drypack-put p total)))
 
-;; Readback test
-(let ((c (yunife-get-library-code fe #t)))
+ ;; Readback test
  (call-with-port
    (open-binary-input-file outbin)
    (lambda (p)
      (let ((x (drypack-get p)))
-      (unless (equal? x c)
+      (unless (equal? x total)
         (display "ERROR: Packed message did not match\n")
         (exit -1))))))
 
