@@ -7,7 +7,7 @@
 
     ;; In (yunivm-core-syntax)
     if begin lambda set! quote letrec*
-    when syntax-rules ... => else define-syntax
+    syntax-rules ... => else define-syntax
 
     ;; Should not be used but be explicit...
     $define/core)

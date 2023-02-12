@@ -12,7 +12,8 @@
   (define (require-pair p)
     (if (pair? p)
         #t
-        (error "Pair required")))
+        (error "Pair required" p)))
+  (define (null? x) (eqv? '() x))
   (define (cons a d) (rib a d 0))
   (define (car p) (require-pair p) (field0 p))
   (define (cdr p) (require-pair p) (field1 p))
