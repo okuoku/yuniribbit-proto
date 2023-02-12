@@ -205,7 +205,9 @@
                    (let loop ((nargs nargs)
                               (new-stack new-cont)
                               (stack (if (= argnc 0) 
-                                       stack
+                                       (if (< layout 0) 
+                                           (_cons _nil stack)
+                                           stack)
                                        (_cons acc stack))))
                      (if (< 0 nargs)
                        (loop (- nargs 1)
