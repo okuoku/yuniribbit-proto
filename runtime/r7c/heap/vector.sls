@@ -33,7 +33,7 @@
   (define ($make-vector len)
     (vec-new 4 len))
 
-  (define ($vector-fill v fill from to)
+  (define ($vector-fill! v fill from to)
     (require-vec v)
     (vec-fill! v fill from to))
 

@@ -3,6 +3,6 @@
   (import (rsc-core-syntax)
           (rvm-primitives))
 
-  (define $fx= =)
-  (define $fx>= >=)
+  ;(define $fx= =)
+  ;(define $fx>= >=)
   )
