@@ -51,3 +51,18 @@ if(rr)
     message(FATAL_ERROR "Compile error: ${rr}")
 endif()
 
+# Run
+execute_process(
+    COMMAND ${YUNIBUILD}/run-${impl}.sh
+    -LIBPATH ${ROOT}/lib
+    -LIBPATH ${CMAKE_CURRENT_LIST_DIR}
+    _vm.sps
+    -run
+    ${compiled}
+    RESULT_VARIABLE rr
+    )
+
+if(rr)
+    message(FATAL_ERROR "Compile error: ${rr}")
+endif()
+
