@@ -11,7 +11,7 @@
   ;; vector-type = 4
 
   (define (vector? v)
-    (eqv? 4 (field2 v)))
+    (and (rib? v) (eqv? 4 (field2 v))))
 
   (define (require-vec v)
     (if (vector? v)

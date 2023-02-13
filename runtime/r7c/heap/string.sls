@@ -10,7 +10,7 @@
 
   ;; string-type = 3
   (define (string? str)
-    (eqv? 3 (field2 str)))
+    (and (rib? str) (eqv? 3 (field2 str))))
 
   (define (require-str str)
     (if (string? str)
@@ -32,6 +32,9 @@
   (define ($string=? str1 str2)
     (require-str str1 str2)
     (vec= str1 str2))
+
+  (define ($make-string len)
+    (vec-new 3 len))
 
   (define ($string-fill! str fill from to)
     (require-str str)

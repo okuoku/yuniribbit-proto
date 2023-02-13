@@ -6,7 +6,7 @@
 
   ;; symbol-type = 2
   ;; string-type = 3
-  (define (symbol? x) (eqv? 2 (field2 x)))
+  (define (symbol? x) (and (rib? x) (eqv? 2 (field2 x))))
   (define (require-sym sym)
     (if (symbol? x)
         #t
