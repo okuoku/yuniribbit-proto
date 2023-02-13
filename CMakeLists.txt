@@ -14,6 +14,7 @@ set(testsrcs
     ${tests}/scheme/core2.sps
     ${tests}/scheme/vectors0.sps
     ${tests}/scheme/bytevectors0.sps
+    ${tests}/scheme/inexact1.sps
     ${tests}/scheme/inexact2.sps
     ${tests}/scheme/qq1.sps
     ${tests}/scheme/stx0.sps
@@ -40,9 +41,7 @@ set(negativetestsrcs
     ${tests}/lib/minitest0.sps # field2
     ${tests}/lib/miniread0.sps # read
 
-
     # Expand phase
-    ${tests}/scheme/inexact1.sps # drypack
     ${tests}/lib/hashtables0.sps # lib ?
     ${tests}/lib/hashtables1.sps # lib ?
     ${tests}/app/basic/app.sps # lib ?
