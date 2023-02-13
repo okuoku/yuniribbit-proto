@@ -2,6 +2,7 @@
 set(ROOT /home/oku/repos/yuni)
 set(YUNIBUILD /home/oku/yuni)
 set(input /home/oku/repos/yuni/tests/scheme/core0.sps)
+#set(input ${CMAKE_CURRENT_LIST_DIR}/check4.sps)
 
 set(libargs)
 foreach(e lib lib-compat lib-r7c)
@@ -63,6 +64,6 @@ execute_process(
     )
 
 if(rr)
-    message(FATAL_ERROR "Compile error: ${rr}")
+    message(FATAL_ERROR "Run error: ${rr}")
 endif()
 
