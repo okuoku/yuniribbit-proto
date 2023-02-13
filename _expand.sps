@@ -13,7 +13,7 @@
   (when (pair? args)
     (let ((a (car args))
           (d (cdr args)))
-      (write (list 'ARG: a)) (newline)
+      ;(write (list 'ARG: a)) (newline)
       (cond
         ((string=? "-libpath" a)
          (unless (pair? d)
@@ -51,7 +51,7 @@
   (define loaded corelibs)
   (define (code libname) (yunife-get-library-code fe libname))
   (define (addloaded! libname)
-    (write (list 'ADD: libname)) (newline)
+    ;(write (list 'ADD: libname)) (newline)
     (set! loaded (append loaded (list libname))))
   (define (loaded? libname)
     (let loop ((x loaded))
@@ -61,7 +61,7 @@
 
   (define (loadlib! libname)
     (unless (loaded? libname)
-      (write (list 'REALIZE: libname)) (newline)
+      ;(write (list 'REALIZE: libname)) (newline)
       (process libname)))
 
   (define (process libname)
@@ -81,7 +81,7 @@
   (process #t)
   outseq)
 
-(write (list 'ARGS: args)) (newline)
+;(write (list 'ARGS: args)) (newline)
 
 (consume-args)
 
