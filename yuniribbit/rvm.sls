@@ -117,6 +117,7 @@
 (define _vector? (instance? vector-type))
 (define _bytevector? (instance? bytevector-type))
 (define _simple-struct? (instance? simple-struct-type))
+(define _procedure? (instance? procedure-type))
 
 (define (import-string x) 
   (unless (_string? x)
@@ -128,6 +129,7 @@
     ((number? x) x)
     ((char? x) x)
     ((symbol? x) x)
+    ((_procedure? x) x)
     ((_string? x) (import-string x))
     ((eqv? _nil x) '())
     ((eqv? _true x) #t)
