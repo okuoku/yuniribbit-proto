@@ -189,10 +189,16 @@
       (set! ext-library-initialized #t))
 
     (vector
+      ;file-exists?
+      (vector 'file-exists? file-exists? 1 1)
+      ;delete-file
+      (vector 'delete-file delete-file 1 1)
       ;string->utf8
       (vector 'string->utf8 string->utf8 #t 1)
       ;utf8->string
       (vector 'utf8->string utf8->string #t 1)
+      ;vector->string
+      (vector 'vector->string vector->string #t 1)
       ;number->string
       (vector 'number->string $$number->string #t 1)
       ;$fixnum?

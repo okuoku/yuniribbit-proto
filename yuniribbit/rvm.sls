@@ -23,8 +23,11 @@
 (define (_field1-set! x y) (vector-set! x 1 y))
 (define (_field2-set! x y) (vector-set! x 2 y))
 
+(define (_rib?/real x) (and (vector? x) 
+                            (= 3 (vector-length x))))
+
 (define (instance? type)
-  (lambda (x) (and (_rib? x) (eqv? (_field2 x) type))))
+  (lambda (x) (and (_rib?/real x) (eqv? (_field2 x) type))))
 
 (define _pair? (instance? pair-type))
 (define (_cons car cdr) (_rib car cdr pair-type))
@@ -135,6 +138,7 @@
     ((eqv? _true x) #t)
     ((eqv? _false x) #f)
     ((_bytevector? x) (_field0 x))
+    ((_vector? x) (_field0 x))
     (else
       (error "Unsupported primitive import" x))))
 
@@ -179,6 +183,8 @@
              ((string? opnd) (_rib opnd 0 string-type))
              ((pair? opnd) (_cons (encode-constant (car opnd))
                                   (encode-constant (cdr opnd))))
+             ((_procedure? opnd) opnd)
+             ((vector? opnd) (_rib opnd 0 vector-type))
              (else opnd))))))
 
 (define (bytevector-fill! bv b start end)
@@ -537,9 +543,6 @@
             ;; 29: (vec-set! vec idx obj)
             (prim3 (lambda (vec idx obj)
                      (cond
-                       ((_string? vec)
-                        (string-set! (_field0 vec) idx obj)
-                        _true)
                        ((_vector? vec)
                         (vector-set! (_field0 vec) idx obj)
                         _true)
