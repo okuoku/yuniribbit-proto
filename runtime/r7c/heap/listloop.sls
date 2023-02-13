@@ -5,7 +5,7 @@
           (rsc-core-syntax))
 
   (define (memv x lis)
-    (if (pair? x)
+    (if (pair? lis)
         (if (eqv? x (car lis))
             lis
             (memv x (cdr lis)))
@@ -13,7 +13,8 @@
 
   (define (length-loop acc lis)
     (if (pair? lis)
-        (length-loop (+ 1 acc) (cdr lis))))
+        (length-loop (+ 1 acc) (cdr lis))
+        acc))
 
   (define ($fx-length lis)
     (if (pair? lis)
