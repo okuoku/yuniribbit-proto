@@ -21,6 +21,8 @@ set(testsrcs
     ${tests}/scheme/values0.sps
     ${tests}/scheme/values2.sps
     ${tests}/scheme/values3.sps
+    ${tests}/lib/hashtables0.sps
+    ${tests}/lib/hashtables1.sps
     ${tests}/lib/yuniio0.sps
     ${tests}/sibr/err-sibr0012string.sps
     ${tests}/sibr/err-sibr0014.sps
@@ -42,8 +44,6 @@ set(negativetestsrcs
     ${tests}/lib/miniread0.sps # read
 
     # Expand phase
-    ${tests}/lib/hashtables0.sps # lib ?
-    ${tests}/lib/hashtables1.sps # lib ?
     ${tests}/app/basic/app.sps # lib ?
     ${tests}/lib/yuniio1.sps # lib ?
 

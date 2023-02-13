@@ -13,6 +13,7 @@
 ;; 7 was char-type
 (define bytevector-type 8) ;; yuniribbit
 (define simple-struct-type 9) ;; yuniribbit
+(define hashtable-type 10) ;; yuniribbit
 
 (define (_rib? x) (vector? x))
 (define (_rib x y z) (vector x y z))
@@ -423,6 +424,12 @@
                         (error       34)
                         (string->symbol 35)
                         (procedure?  36)
+                        (ht-new      37)
+                        (hashtable-set! 38)
+                        (hashtable-entries 39)
+                        (hashtable-ref 40)
+                        (hashtable-keys 41)
+                        (hashtable-size 42)
                         ))
 
 
@@ -612,21 +619,52 @@
                      (error "Error" x)))
             ;; 35: (string->symbol str)
             (prim1 (lambda (str)
-                     (unless (= string-type (field2 str))
+                     (unless (= string-type (_field2 str))
                        (error "String required" str))
-                     (let* ((name (field0 str))
+                     (let* ((name (_field0 str))
                             (namesym (string->symbol name)))
                        (let ((r (hashtable-ref globals namesym #f)))
                         (cond
                           (r r)
                           (else
                             (let ((r (_string->uninterned-symbol name)))
-                             (hashtable-set! globals r)
+                             (hashtable-set! globals namesym r)
                              r)))))))
             ;; 36: (procedure? x)
             (prim1 (lambda (x)
                      ;(write (list 'PROCEDURE-FIXME: x)) (newline)
-                     _false))))
+                     _false))
+            ;; 37: (ht-new type)
+            (prim1 (lambda (x)
+                     (_rib ((case x
+                              ((0) make-eq-hashtable)
+                              ((1) make-eqv-hashtable)
+                              ((2) make-integer-hashtable)
+                              ((3) make-string-hashtable)
+                              ((4) make-symbol-hashtable)))
+                           x
+                           hashtable-type)))
+            ;; 38: (hashtable-set! ht key obj)
+            (prim3 (lambda (ht key obj)
+                     (hashtable-set! (_field0 ht) key obj)
+                     _true))
+            ;; 39: (hashtable-entries ht)
+            (prim1 (lambda (ht)
+                     (call-with-values
+                       (lambda () (hashtable-entries (_field0 ht)))
+                       (lambda (keys vals)
+                         (let ((v1 (_rib keys 0 vector-type))
+                               (v2 (_rib vals 0 vector-type)))
+                           (_rib (_cons v1 (_cons v2 _nil)) 0 values-type))))))
+            ;; 40: (hashtable-ref ht key default)
+            (prim3 (lambda (ht key default)
+                     (hashtable-ref (_field0 ht) key default)))
+            ;; 41: (hashtable-keys ht)
+            (prim1 (lambda (ht)
+                     (_rib (hashtable-keys (_field0 ht)) 0 vector-type)))
+            ;; 42: (hashtable-size ht)
+            (prim1 (lambda (ht)
+                     (hashtable-size (_field0 ht))))))
 
   (for-each (lambda (e)
               (let ((sym (car e)))
