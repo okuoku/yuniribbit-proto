@@ -29,7 +29,7 @@
   (define ($make-bytevector len)
     (vec-new 8 len))
   
-  (define ($bytevector-fill bv fill from to)
+  (define ($bytevector-fill! bv fill from to)
     (require-bv bv)
     (vec-fill! bv fill from to))
 

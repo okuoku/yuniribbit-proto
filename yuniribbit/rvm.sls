@@ -144,7 +144,7 @@
     ((char? x) x)
     ((null? x) _nil)
     ((string? x) (_rib x 0 string-type))
-    ((bytevector? x) (_rib x 0 _bytevector-type))
+    ((bytevector? x) (_rib x 0 bytevector-type))
     (else
       (error "Unsupported primitive object" x))))
 
@@ -178,6 +178,12 @@
              ((pair? opnd) (_cons (encode-constant (car opnd))
                                   (encode-constant (cdr opnd))))
              (else opnd))))))
+
+(define (bytevector-fill! bv b start end)
+  (let loop ((idx start))
+   (unless (= idx end)
+     (bytevector-u8-set! bv idx b)
+     (loop (+ idx 1)))))
 
 (define (rvm code+exports ext input done-cb)
   (define not-yet (cons 0 0))

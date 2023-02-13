@@ -189,6 +189,10 @@
       (set! ext-library-initialized #t))
 
     (vector
+      ;string->utf8
+      (vector 'string->utf8 string->utf8 #t 1)
+      ;utf8->string
+      (vector 'utf8->string utf8->string #t 1)
       ;number->string
       (vector 'number->string $$number->string #t 1)
       ;$fixnum?
