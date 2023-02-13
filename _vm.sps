@@ -34,8 +34,8 @@
      (rvm c 
           (ext-functions-vector)
           ""
-          (lambda (x) 
+          (lambda (x . _)
             (write (list 'EXIT: x)) (newline)
-            (exit 0))))))
+            (exit x))))))
 
 (exit 1)
