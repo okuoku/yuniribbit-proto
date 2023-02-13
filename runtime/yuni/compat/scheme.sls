@@ -112,6 +112,7 @@
            (rsc-core-syntax)
            (rvm-primitives)
            
+           (rvmruntime applyvalues)
            (r7c-basic lib boolean)
            (r7c-basic lib bytevectors)
            (r7c-basic lib char)
