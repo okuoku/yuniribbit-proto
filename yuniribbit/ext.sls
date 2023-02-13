@@ -18,6 +18,12 @@
       (call-with-values (lambda () (apply proc args))
                         (lambda (a b) (values (inexact a) (inexact b))))))
 
+  (define ($$number->string num . radix?) 
+    (if (null? radix?)
+        ($$number->string num 10)
+        (number->string num (car radix?))))
+
+  (define ($fixnum? x) (and (exact? x) (integer? x)))
   (define $flonum? inexact?)
 
   (define $fx= =)
@@ -183,6 +189,10 @@
       (set! ext-library-initialized #t))
 
     (vector
+      ;number->string
+      (vector 'number->string $$number->string #t 1)
+      ;$fixnum?
+      (vector '$fixnum? $fixnum? 1 1)
       ;$flonum?
       (vector '$flonum? $flonum? 1 1)
       ;$fx=

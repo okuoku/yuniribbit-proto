@@ -32,9 +32,10 @@
 (define (_cdr pair) (_field1 pair))
 (define (_set-car! pair x) (_field0-set! pair x))
 
-(define (_list->string lst) (_rib lst (_length lst) string-type))
-
-(define (_string->uninterned-symbol str) (_rib _false str symbol-type))
+(define (_string->uninterned-symbol str) 
+  ;(_rib _false str symbol-type)
+  (_rib str str symbol-type) ;; debug
+  )
 
 (define _false (_rib "false" 0 singleton-type))
 (define _true  (_rib "true" 0 singleton-type))
@@ -83,6 +84,14 @@
            (x (_car stack)) (stack (_cdr stack)))
       (_cons (f x y z) stack))))
 
+(define (prim4 f)
+  (lambda (vals stack)
+    (let* ((u (_car stack)) (stack (_cdr stack))
+           (z (_car stack)) (stack (_cdr stack))
+           (y (_car stack)) (stack (_cdr stack))
+           (x (_car stack)) (stack (_cdr stack)))
+      (_cons (f x y z u) stack))))
+
 (define (prim5 f)
   (lambda (vals stack)
     (let* ((v (_car stack)) (stack (_cdr stack))
@@ -104,17 +113,73 @@
 (define (boolean x)
   (if x _true _false))
 
-(define (import-string x)
-  (let loop ((acc "")
-             (cur (_field0 x)))
-    (if (_pair? cur)
-      (loop (string-append 
-              acc
-              (list->string (list (integer->char (_car cur)))))
-            (_cdr cur))
-      acc)))
+(define _string? (instance? string-type))
+(define _vector? (instance? vector-type))
+(define _bytevector? (instance? bytevector-type))
+(define _simple-struct? (instance? simple-struct-type))
 
-(define (rvm code+exports input done-cb)
+(define (import-string x) 
+  (unless (_string? x)
+    (error "tried to import non-string" x))
+  (_field0 x))
+
+(define (import-value x)
+  (cond
+    ((number? x) x)
+    ((char? x) x)
+    ((symbol? x) x)
+    ((_string? x) (import-string x))
+    ((eqv? _nil x) '())
+    ((eqv? _true x) #t)
+    ((eqv? _false x) #f)
+    ((_bytevector? x) (_field0 x))
+    (else
+      (error "Unsupported primitive import" x))))
+
+(define (export-value x)
+  (cond
+    ((number? x) x)
+    ((boolean? x) (boolean x))
+    ((eof-object? x) _eof-object)
+    ((char? x) x)
+    ((null? x) _nil)
+    ((string? x) (_rib x 0 string-type))
+    ((bytevector? x) (_rib x 0 _bytevector-type))
+    (else
+      (error "Unsupported primitive object" x))))
+
+(define (realize-ext procname proc args results)
+  (lambda (vals stack)
+    (let loop ((rest (if (eq? args #t) vals args))
+               (cur '())
+               (stack stack))
+      (unless (or (not (number? args)) (= vals args))
+        (error "FIXME: Wrong arg count" procname vals))
+      (if (= rest 0)
+          (case results
+            ((1)
+             (let ((r (apply proc cur)))
+              (_cons (export-value r) stack)))
+            ((0)
+             (apply proc cur)
+             (_cons _false stack))
+            (else
+              (error "Unknown results count" procname results)))
+          (loop (- rest 1)
+                (cons (import-value (_car stack)) cur)
+                (_cdr stack))))))
+
+(define (encode-constant opnd)
+  (let ((v (cond
+             ((number? opnd) opnd)
+             ((null? opnd) _nil)
+             ((boolean? opnd) (if opnd _true _false))
+             ((string? opnd) (_rib opnd 0 string-type))
+             ((pair? opnd) (_cons (encode-constant (car opnd))
+                                  (encode-constant (cdr opnd))))
+             (else opnd))))))
+
+(define (rvm code+exports ext input done-cb)
   (define not-yet (cons 0 0))
   (define output-result not-yet)
   (define output-buf "")
@@ -124,12 +189,20 @@
   (define globals (make-symbol-hashtable))
   (define vmsym? (instance? symbol-type))
   (define symcache (make-symbol-hashtable))
+  (define externals (vector-map
+                      (lambda (v) (realize-ext (vector-ref v 0)
+                                               (vector-ref v 1)
+                                               (vector-ref v 2)
+                                               (vector-ref v 3)))
+                      ext))
+  (define external-names (vector-map (lambda (v) (vector-ref v 0)) ext))
   (define (symeq? sym rib) 
     (and (vmsym? rib)
          (let ((x (hashtable-ref symcache sym #f)))
           (eq? x rib))))
 
   (define (get-var stack opnd)
+    ;(write (list 'GET-VAR: opnd)) (newline)
     (_field0 
       (cond
         ((_rib? opnd) 
@@ -180,6 +253,7 @@
         ((0) ;; jump/call
          (let* ((proc (get-var stack opnd))
                 (code (_field0 proc)))
+           ;(unless (_rib? code) (write (list 'CALL: code)) (newline))
            (if (_rib? code)
 
              ;; calling a lambda
@@ -194,6 +268,7 @@
                      (nargs (if (< layout 0)
                               (- 0 layout)
                               layout)))
+                ;(write (list 'CALL: layout argnc nargs)) (newline)
                 ;; Audit nargs
                 (when (and vals (< argnc 0) (< vals nargs))
                   (error "Unmatched argument count" vals nargs))
@@ -247,7 +322,18 @@
                       (else ;; standard apply
                         (run 1 trampoline (_cons v* stack))))))
                  
-                 (else (error "Invalid special primitive" vals pc stack)))
+                 (else 
+                   ;; Calling external primitive
+                   (let* ((id (- 0 code 12 1))
+                          (proc (vector-ref externals id))
+                          (stack (proc vals stack)))
+                     (run #f
+                          (if (_rib? next) ;; non-tail call?
+                              next
+                              (let ((cont (get-cont stack)))
+                               (_field1-set! stack (_field0 cont))
+                               (_field2 cont)))
+                          stack))))
 
                ;; calling std primitive
                (let ((stack ((vector-ref primitives code) vals stack)))
@@ -272,11 +358,8 @@
               (_cons (get-var stack opnd) stack)))
 
         ((3) ;; const
-         (let ((v (cond
-                    ((number? opnd) opnd)
-                    ((null? opnd) _nil)
-                    ((boolean? opnd) (if opnd _true _false))
-                    (else opnd))))
+         ;; FIXME: Move this to the compiler
+         (let ((v (encode-constant opnd)))
            (run #f next (_cons v stack))))
 
         ((4) ;; if
@@ -322,6 +405,10 @@
                         (vec-new     30)
                         (vec-length  31)
                         (vec-fill!   32)
+                        (vec=        33)
+                        (error       34)
+                        (string->symbol 35)
+                        (procedure?  36)
                         ))
 
 
@@ -343,6 +430,7 @@
             (prim2 (lambda (x y) (_field1-set! x y) y)) ;; 10
             (prim2 (lambda (x y) (_field2-set! x y) y)) ;; 11
             (prim2 (lambda (x y)  ;; 12
+                     ;(write (list 'EQV: x y '=> (eqv? x y))) (newline)
                      (cond
                        ((symbol? x)
                         (boolean (or (symeq? x y)
@@ -396,13 +484,138 @@
             ;; 25: integer->char
             (prim1 integer->char)
             ;; 26: (vec-copy vec start end) ;; -1 for full copy
+            (prim3 (lambda (vec start end)
+                     (cond
+                       ((_bytevector? vec)
+                        (let* ((bv (_field0 vec))
+                               (newbv (if (= start -1)
+                                          (bytevector-copy bv)
+                                          (bytevector-copy bv start end))))
+                          (_rib newbv 0 bytevector-type)))
+                       (else
+                         (error "Unimpl: vec-copy" vec)))))
             ;; 27: (vec-copy! tgt loc src start end)
+            (prim5 (lambda (tgt loc src start end)
+                     (cond
+                       ((_string? tgt)
+                        (string-copy! (_field0 tgt) loc (_field0 src)
+                                      start end)
+                        _true)
+                       ((_vector? tgt)
+                        (vector-copy! (_field0 tgt) loc (_field0 src)
+                                      start end)
+                        _true)
+                       ((_bytevector? tgt)
+                        (let ((bv1 (_field0 tgt))
+                              (bv2 (_field0 src)))
+                          (bytevector-copy! bv1 loc bv2 start end))
+                        _true)
+                       (else
+                         (error "Unimpl: vec-copy!")))))
             ;; 28: (vec-ref vec idx)
+            (prim2 (lambda (vec idx)
+                     (cond
+                       ((_string? vec)
+                        (string-ref (_field0 vec) idx))
+                       ((_vector? vec)
+                        (vector-ref (_field0 vec) idx))
+                       ((_simple-struct? vec)
+                        (vector-ref (_field0 vec) (+ 1 idx)))
+                       ((_bytevector? vec)
+                        (let ((bv (_field0 vec)))
+                         (bytevector-u8-ref bv idx)))
+                       (else
+                         (error "Unimpl: vec-ref")))))
             ;; 29: (vec-set! vec idx obj)
+            (prim3 (lambda (vec idx obj)
+                     (cond
+                       ((_string? vec)
+                        (string-set! (_field0 vec) idx obj)
+                        _true)
+                       ((_vector? vec)
+                        (vector-set! (_field0 vec) idx obj)
+                        _true)
+                       ((_simple-struct? vec)
+                        ;(write (list 'VEC: vec idx obj)) (newline)
+                        (vector-set! (_field0 vec) (+ 1 idx) obj)
+                        _true)
+                       ((_bytevector? vec)
+                        (let ((bv (_field0 vec)))
+                         (bytevector-u8-set! bv idx obj))
+                        _true)
+                       (else
+                         (error "Unimpl: vec-set!")))))
             ;; 30: (vec-new tag k)
+            (prim2 (lambda (tag k)
+                     (cond
+                       ((= tag vector-type)
+                        ;(write (list 'VECNEW: k)) (newline)
+                        (_rib (make-vector k) 0 vector-type))
+                       ((= tag simple-struct-type)
+                        (_rib (make-vector (+ k 1)) 0 simple-struct-type))
+                       ((= tag string-type)
+                        (_rib (make-string k) 0 string-type))
+                       ((= tag bytevector-type)
+                        (let ((bv (make-bytevector k)))
+                         (_rib bv 0 bytevector-type)))
+                       (else
+                         (error "Unimpl: vec-new" tag)))))
             ;; 31: (vec-length vec)
+            (prim1 (lambda (vec)
+                     (cond
+                       ((_string? vec)
+                        (string-length (_field0 vec)))
+                       ((_vector? vec)
+                        (vector-length (_field0 vec)))
+                       ((_bytevector? vec)
+                        (let ((bv (_field0 vec)))
+                         (bytevector-length bv)))
+                       (else
+                         (error "Unimpl: vec-length")))))
             ;; 32: (vec-fill! vec obj from to)
-            ))
+            (prim4 (lambda (vec obj from to)
+                     (cond
+                       ((_string? vec)
+                        (string-fill! (_field0 vec) obj from to)
+                        _true)
+                       ((_vector? vec)
+                        (vector-fill! (_field0 vec) obj from to)
+                        _true)
+                       ((_bytevector? vec)
+                        (let ((bv (_field0 vec)))
+                         (bytevector-fill! bv obj from to)
+                         _true))
+                       (else
+                         (error "Unimpl: vec-fill!")))))
+            ;; 33: (vec= x y)
+            (prim2 (lambda (x y)
+                     (cond
+                       ((_string? x)
+                        (if (string=? (_field0 x) (_field0 y))
+                            _true
+                            _false))
+                       (else
+                         (error "Unimpl: vec=")))))
+            ;; 34: (error . x)
+            (primn (lambda x
+                     (error "Error" x)))
+            ;; 35: (string->symbol str)
+            (prim1 (lambda (str)
+                     (unless (= string-type (field2 str))
+                       (error "String required" str))
+                     (let* ((name (field0 str))
+                            (namesym (string->symbol name)))
+                       (let ((r (hashtable-ref globals namesym #f)))
+                        (cond
+                          (r r)
+                          (else
+                            (let ((r (_string->uninterned-symbol name)))
+                             (hashtable-set! globals r)
+                             r)))))))
+            ;; 36: (procedure? x)
+            (prim1 (lambda (x)
+                     ;(write (list 'PROCEDURE-FIXME: x)) (newline)
+                     _false))))
 
   (for-each (lambda (e)
               (let ((sym (car e)))
@@ -419,6 +632,14 @@
             primitives0)
 
   (set-var "unused" 'apply-values (_rib -12 _nil procedure-type))
+
+  (let ((offset (+ -12 -1)))
+   (let loop ((idx 0))
+    (unless (= (vector-length external-names) idx)
+      (let* ((name (vector-ref external-names idx))
+             (id (- offset idx)))
+        (set-var "unused" name (_rib id _nil procedure-type)))
+      (loop (+ idx 1)))))
 
   (hashtable-set! globals 'false _false)
   (hashtable-set! globals 'true _true)
