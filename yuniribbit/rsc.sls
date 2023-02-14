@@ -1,153 +1,16 @@
 (library (yuniribbit rsc)
          (export compile-program)
-         (import (yuni scheme)
-                 (yuni hashtables))
+         (import (yuni scheme))
 
          
 ;;
-
-(define (make-table)
-  (make-symbol-hashtable))
-
-(define (table-ref table key default)
-  (hashtable-ref table key default))
-
-(define (table-set! table key value)
-  (hashtable-set! table key value))
-
-(define (table-length table)
-  (hashtable-size table))
-
-(define (table->list table)
-  (let-values (((keys entries) (hashtable-entries table)))
-              (vector->list (vector-map cons keys entries))))
-
-
-(define uninterned-symbols-counter 0)
-(define uninterned-symbols (make-table))
-
-(define (str->uninterned-symbol string)
-  (let* ((name
-           (string-append "@@@" ;; use a "unique" prefix
-                          (number->string
-                            uninterned-symbols-counter)))
-         (sym
-           (string->symbol name)))
-    (table-set! uninterned-symbols sym string) ;; remember "real" name
-    (set! uninterned-symbols-counter (+ 1 uninterned-symbols-counter))
-    sym))
-
-(define (symbol->str symbol)
-  (table-ref uninterned-symbols symbol (symbol->string symbol)))
 
 (define (pp obj)
   (write obj)
   (newline))
 
 
-(define (list-sort! compare list)
-
-  ;; Stable mergesort algorithm
-
-  (define (sort list len)
-    (if (= len 1)
-      (begin
-        (set-cdr! list '())
-        list)
-      (let ((len1 (quotient len 2)))
-       (let loop ((n len1) (tail list))
-        (if (> n 0)
-          (loop (- n 1) (cdr tail))
-          (let ((x (sort tail (- len len1))))
-           (merge (sort list len1) x)))))))
-
-  (define (merge list1 list2)
-    (if (pair? list1)
-      (if (pair? list2)
-        (let ((x1 (car list1))
-              (x2 (car list2)))
-          (if (compare x2 x1)
-            (merge-loop list2 list2 list1 (cdr list2))
-            (merge-loop list1 list1 (cdr list1) list2)))
-        list1)
-      list2))
-
-  (define (merge-loop result prev list1 list2)
-    (if (pair? list1)
-      (if (pair? list2)
-        (let ((x1 (car list1))
-              (x2 (car list2)))
-          (if (compare x2 x1)
-            (begin
-              (set-cdr! prev list2)
-              (merge-loop result list2 list1 (cdr list2)))
-            (begin
-              (set-cdr! prev list1)
-              (merge-loop result list1 (cdr list1) list2))))
-        (begin
-          (set-cdr! prev list1)
-          result))
-      (begin
-        (set-cdr! prev list2)
-        result)))
-
-  (let ((len (length list)))
-   (if (= 0 len)
-     '()
-     (sort list len))))
-
-(define (list-sort compare list)
-  (list-sort! compare (append list '())))
-
-
-(define (script-file)
-  "")
-
-(define (executable-path)
-  "")
-
-
-(define (string-concatenate string-list separator)
-  (if (pair? string-list)
-    (let ((rev-string-list (reverse string-list))
-          (sep (string->list separator)))
-      (let loop ((lst (cdr rev-string-list))
-                 (result (string->list (car rev-string-list))))
-        (if (pair? lst)
-          (loop (cdr lst)
-                (append (string->list (car lst))
-                        (append sep
-                                result)))
-          (list->string result))))
-    ""))
-
 ;;;----------------------------------------------------------------------------
-
-(define predefined '(rib false true nil)) ;; predefined symbols
-
-(define primitives0 '(
-(rib         0) ;; predefined by RVM (must be first and 0)
-(id          1)
-(arg1        2)
-(arg2        3)
-(close       4)
-(rib?        5)
-(field0      6)
-(field1      7)
-(field2      8)
-(field0-set! 9)
-(field1-set! 10)
-(field2-set! 11)
-(eqv?        12)
-(<           13)
-(+           14)
-(-           15)
-(*           16)
-(quotient    17)
-(getchar     18)
-(putchar     19)
-(exit        20)
-))
 
 (define jump/call-op 0)
 (define set-op       1)
@@ -179,10 +42,6 @@
         (reverse (cons cur acc))))))
 
 ;;;----------------------------------------------------------------------------
-
-
-
-
 
 (define pair-type      0)
 (define procedure-type 1)
