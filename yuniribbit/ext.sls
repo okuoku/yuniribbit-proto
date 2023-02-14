@@ -203,6 +203,8 @@
       (vector 'number->string $$number->string #t 1)
       ;string->number
       (vector 'string->number string->number #t 1)
+      ;list->string
+      (vector 'list->string list->string 1 1)
       ;$fixnum?
       (vector '$fixnum? $fixnum? 1 1)
       ;$flonum?

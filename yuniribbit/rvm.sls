@@ -140,6 +140,7 @@
     ((eqv? _false x) #f)
     ((_bytevector? x) (_field0 x))
     ((_vector? x) (_field0 x))
+    ((_pair? x) (cons (import-value (_field0 x)) (import-value (_field1 x))))
     (else
       (error "Unsupported primitive import" x))))
 
