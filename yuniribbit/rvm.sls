@@ -195,10 +195,9 @@
      (bytevector-u8-set! bv idx b)
      (loop (+ idx 1)))))
 
-(define (rvm code+exports ext input done-cb)
+(define (rvm code+exports ext done-cb)
   (define not-yet (cons 0 0))
   (define output-result not-yet)
-  (define output-buf "")
   (define pos 0)
   (define code (car code+exports))
   (define exports (cdr code+exports))
@@ -405,8 +404,8 @@
                         (-           15)
                         (*           16)
                         (quotient    17)
-                        (getchar     18)
-                        (putchar     19)
+                        (NEVERLAND-getchar     18)
+                        (NEVERLAND-putchar     19)
                         (exit        20)
                         ;; yuniribbit
                         (values      21)
@@ -467,22 +466,11 @@
             (primn -) ;; 15
             (primn *) ;; 16
             (prim2 quotient) ;; 17
-
-            (prim0 (lambda () ;; 18
-                     (if (< pos (string-length input))
-                       (get-byte)
-                       -1)))
-
-            (prim1 (lambda (x) ;; 19
-                     (set! output-buf
-                       (string-append
-                         output-buf
-                         (list->string (list (integer->char x)))))
-                     x))
-
+            "NEVERLAND-getchar" ;; 18 was getchar
+            "NEVERLAND-putchar" ;; 19 was putchar
             (prim1/term (lambda (x) ;; 20
                           (set! output-result x)
-                          (done-cb output-result output-buf)))
+                          (done-cb output-result)))
             ;; yuniribbit
             ;; 21: values
             (lambda (vals stack)
@@ -702,7 +690,7 @@
        (_field2 (_field0 code)) ;; instruction stream of main procedure
        (_rib 0 0 (_rib 6 0 0))) ;; primordial continuation = halt
   (when (eq? not-yet output-result)
-    (done-cb #t output-buf))
+    (done-cb #t))
    ) 
 
 

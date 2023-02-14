@@ -33,8 +33,7 @@
     (let ((c (drypack-get p)))
      (rvm c 
           (ext-functions-vector)
-          ""
-          (lambda (x . _)
+          (lambda (x)
             (write (list 'EXIT: x)) (newline)
             (exit x))))))
 
