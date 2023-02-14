@@ -16,8 +16,10 @@ set(testsrcs
     ${tests}/scheme/bytevectors0.sps
     ${tests}/scheme/inexact1.sps
     ${tests}/scheme/inexact2.sps
+    ${tests}/scheme/iter0.sps
     ${tests}/scheme/qq1.sps
     ${tests}/scheme/stx0.sps
+    ${tests}/scheme/strings0.sps
     ${tests}/scheme/values0.sps
     ${tests}/scheme/values2.sps
     ${tests}/scheme/values3.sps
@@ -30,8 +32,6 @@ set(testsrcs
 
 set(negativetestsrcs
     # Run phase
-    ${tests}/scheme/strings0.sps # vec-set!
-    ${tests}/scheme/iter0.sps # vec-set!
     ${tests}/scheme/inexact0.sps # multiple failures
     ${tests}/scheme/inexact3.sps # 1 failure
     ${tests}/scheme/qq0.sps # ???
@@ -40,12 +40,12 @@ set(negativetestsrcs
     ${tests}/scheme/exp2.sps # make-parameter
     ${tests}/scheme/values1.sps # let-values
     ${tests}/lib/lighteval0.sps # ???
-    ${tests}/lib/minitest0.sps # field2
+    ${tests}/lib/minitest0.sps # constant ?
     ${tests}/lib/miniread0.sps # read
+    ${tests}/lib/yuniio1.sps # constant ?
 
     # Expand phase
     ${tests}/app/basic/app.sps # lib ?
-    ${tests}/lib/yuniio1.sps # lib ?
 
     # Not ported yet
     ${tests}/sibr/sibr0010string.sps

@@ -147,4 +147,12 @@
            ;(r7c-report misc lazy)
            ;(r7c-report misc parameterize)
            
-           ))
+           )
+         
+;; Tentative
+
+(define (string-map proc . args)
+  (vector->string
+    (apply vector-map proc (map string->vector args))))
+
+         )
