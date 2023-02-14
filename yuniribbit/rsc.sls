@@ -43,12 +43,7 @@
 
 ;;;----------------------------------------------------------------------------
 
-(define pair-type      0)
 (define procedure-type 1)
-(define symbol-type    2)
-(define string-type    3)
-(define vector-type    4)
-(define singleton-type 5)
 
 (define (instance? o type) (and (rib? o) (eqv? (field2 o) type)))
 
@@ -67,14 +62,7 @@
 (define (field1-set! o x) (vector-set! o 1 x) o)
 (define (field2-set! o x) (vector-set! o 2 x) o)
 
-(define (procedure2? o) (instance? o procedure-type))
 (define (make-procedure code env) (rib code env procedure-type))
-(define (procedure-code proc) (field0 proc))
-(define (procedure-env proc) (field1 proc))
-
-(define (oper pc) (field0 pc))
-(define (opnd pc) (field1 pc))
-(define (next pc) (field2 pc))
 
 ;;;----------------------------------------------------------------------------
 
