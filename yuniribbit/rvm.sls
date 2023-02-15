@@ -36,7 +36,7 @@
 (define (_cdr pair) (_field1 pair))
 (define (_set-car! pair x) (_field0-set! pair x))
 
-(define (_string->uninterned-symbol str) 
+(define (_make-uninterned-symbol str) 
   ;(_rib _false str symbol-type)
   (_rib str str symbol-type) ;; debug
   )
@@ -117,6 +117,7 @@
 (define (boolean x)
   (if x _true _false))
 
+(define _symbol? (instance? symbol-type))
 (define _string? (instance? string-type))
 (define _vector? (instance? vector-type))
 (define _bytevector? (instance? bytevector-type))
@@ -132,6 +133,7 @@
   (cond
     ((number? x) x)
     ((char? x) x)
+    ((_symbol? x) (_field0 x))
     ((symbol? x) x)
     ((_procedure? x) x)
     ((_string? x) (import-string x))
@@ -177,17 +179,21 @@
                 (cons (import-value (_car stack)) cur)
                 (_cdr stack))))))
 
-(define (encode-constant opnd)
+(define (encode-constant opnd intern!)
   (let ((v (cond
              ((number? opnd) opnd)
+             ((char? opnd) opnd)
              ((null? opnd) _nil)
              ((boolean? opnd) (if opnd _true _false))
              ((string? opnd) (_rib opnd 0 string-type))
-             ((pair? opnd) (_cons (encode-constant (car opnd))
-                                  (encode-constant (cdr opnd))))
+             ((pair? opnd) (_cons (encode-constant (car opnd) intern!)
+                                  (encode-constant (cdr opnd) intern!)))
              ((_procedure? opnd) opnd)
              ((vector? opnd) (_rib opnd 0 vector-type))
-             (else opnd))))))
+             ((symbol? opnd) (intern! opnd))
+             (else 
+               (error "Unknown constant" opnd)
+               opnd))))))
 
 (define (bytevector-fill! bv b start end)
   (let loop ((idx start))
@@ -202,7 +208,6 @@
   (define code (car code+exports))
   (define exports (cdr code+exports))
   (define globals (make-symbol-hashtable))
-  (define vmsym? (instance? symbol-type))
   (define symcache (make-symbol-hashtable))
   (define externals (vector-map
                       (lambda (v) (realize-ext (vector-ref v 0)
@@ -211,10 +216,15 @@
                                                (vector-ref v 3)))
                       ext))
   (define external-names (vector-map (lambda (v) (vector-ref v 0)) ext))
-  (define (symeq? sym rib) 
-    (and (vmsym? rib)
-         (let ((x (hashtable-ref symcache sym #f)))
-          (eq? x rib))))
+
+  (define (intern! sym)
+    (unless (symbol? sym)
+      (error "Unknown symbol" sym))
+    (or (hashtable-ref globals sym #f)
+        (let ((r (_make-uninterned-symbol sym)))
+         (hashtable-set! globals sym r)
+         ;(write (list 'INTERN: r)) (newline)
+         r)))
 
   (define (get-var stack opnd)
     ;(write (list 'GET-VAR: opnd)) (newline)
@@ -229,27 +239,7 @@
     (_field0-set! 
       (cond
         ((_rib? opnd) opnd)
-        ((symbol? opnd) 
-         (when (eq? 'symtbl opnd)
-           ;; Handle delayed "code -> VM" import
-           (when (_pair? val)
-             (let ((sym (_car val)))
-              (unless (eqv? symbol-type (_field2 sym))
-                (error "Tried to add non-symbol!!"))
-              (when (string=? "unspecified" (_field0 sym))
-                (let ((name (string->symbol (import-string (_field1 sym)))))
-                 (hashtable-set! symcache name sym)
-                 (let ((v (hashtable-ref globals name #f)))
-                   (when v
-                     (_field0-set! sym (_field0 v)))))))))
-         (let ((f (hashtable-ref globals opnd #f)))
-          (cond
-            (f f)
-            (else 
-              (hashtable-set! globals opnd
-                              (_string->uninterned-symbol
-                                (symbol->string opnd)))
-              (hashtable-ref globals opnd #f)))))
+        ((symbol? opnd) (intern! opnd))
         (else (_list-tail stack opnd)))
       val))
 
@@ -373,8 +363,7 @@
               (_cons (get-var stack opnd) stack)))
 
         ((3) ;; const
-         ;; FIXME: Move this to the compiler
-         (let ((v (encode-constant opnd)))
+         (let ((v (encode-constant opnd intern!)))
            (run #f next (_cons v stack))))
 
         ((4) ;; if
@@ -430,6 +419,7 @@
                         (hashtable-ref 40)
                         (hashtable-keys 41)
                         (hashtable-size 42)
+                        (symbol->string 43)
                         ))
 
 
@@ -452,15 +442,9 @@
             (prim2 (lambda (x y) (_field2-set! x y) y)) ;; 11
             (prim2 (lambda (x y)  ;; 12
                      ;(write (list 'EQV: x y '=> (eqv? x y))) (newline)
-                     (cond
-                       ((symbol? x)
-                        (boolean (or (symeq? x y)
-                                     (eqv? x y))))
-                       ((symbol? y)
-                        (boolean (or (symeq? y x)
-                                     (eqv? x y))))
-                       (else
-                         (boolean (eqv? x y))))))
+                     (when (or (symbol? x) (symbol? y))
+                       (error "Raw symbol" x y))
+                     (boolean (eqv? x y))))
             (prim2 (lambda (x y) (boolean (< x y)))) ;; 13
             (primn +) ;; 14
             (primn -) ;; 15
@@ -612,13 +596,7 @@
                        (error "String required" str))
                      (let* ((name (_field0 str))
                             (namesym (string->symbol name)))
-                       (let ((r (hashtable-ref globals namesym #f)))
-                        (cond
-                          (r r)
-                          (else
-                            (let ((r (_string->uninterned-symbol name)))
-                             (hashtable-set! globals namesym r)
-                             r)))))))
+                       (intern! namesym))))
             ;; 36: (procedure? x)
             (prim1 (lambda (x)
                      ;(write (list 'PROCEDURE-FIXME: x)) (newline)
@@ -653,12 +631,14 @@
                      (_rib (hashtable-keys (_field0 ht)) 0 vector-type)))
             ;; 42: (hashtable-size ht)
             (prim1 (lambda (ht)
-                     (hashtable-size (_field0 ht))))))
+                     (hashtable-size (_field0 ht))))
+            ;; 43: (symbol->string sym)
+            (prim1 (lambda (sym)
+                     (unless (= (_field2 sym) symbol-type)
+                       (error "Symbol required" sym))
+                     (_rib (symbol->string (_field0 sym)) 0 string-type)))))
 
-  (for-each (lambda (e)
-              (let ((sym (car e)))
-               (hashtable-set! globals sym (_string->uninterned-symbol
-                                             (symbol->string sym)))))
+  (for-each (lambda (e) (intern! (car e)))
             exports)
 
   ;; Enter primitives

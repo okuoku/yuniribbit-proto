@@ -25,6 +25,7 @@ set(testsrcs
     ${tests}/scheme/values3.sps
     ${tests}/lib/hashtables0.sps
     ${tests}/lib/hashtables1.sps
+    ${tests}/lib/minitest0.sps
     ${tests}/lib/yuniio0.sps
     ${tests}/sibr/err-sibr0012string.sps
     ${tests}/sibr/err-sibr0014.sps
@@ -40,9 +41,8 @@ set(negativetestsrcs
     ${tests}/scheme/exp2.sps # make-parameter
     ${tests}/scheme/values1.sps # let-values
     ${tests}/lib/lighteval0.sps # ???
-    ${tests}/lib/minitest0.sps # constant ?
     ${tests}/lib/miniread0.sps # read
-    ${tests}/lib/yuniio1.sps # constant ?
+    ${tests}/lib/yuniio1.sps # eof-object, read
 
     # Expand phase
     ${tests}/app/basic/app.sps # lib ?
