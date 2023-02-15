@@ -204,11 +204,9 @@
 (define (rvm code+exports ext done-cb)
   (define not-yet (cons 0 0))
   (define output-result not-yet)
-  (define pos 0)
   (define code (car code+exports))
   (define exports (cdr code+exports))
   (define globals (make-symbol-hashtable))
-  (define symcache (make-symbol-hashtable))
   (define externals (vector-map
                       (lambda (v) (realize-ext (vector-ref v 0)
                                                (vector-ref v 1)
@@ -242,12 +240,6 @@
         ((symbol? opnd) (intern! opnd))
         (else (_list-tail stack opnd)))
       val))
-
-
-  (define (get-byte)
-    (let ((x (char->integer (string-ref input pos))))
-     (set! pos (+ pos 1))
-     (integer->char x)))
 
   (define (run vals pc stack)
     (let ((instr (_field0 pc))
