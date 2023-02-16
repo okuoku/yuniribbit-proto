@@ -35,7 +35,7 @@
           (exports (vector-ref v 3))
           (seq (vector-ref v 4))
           (mac (vector-ref v 5)))
-      (let ((c (compile-program 0 seq)))
+      (let ((c (compile-program seq)))
        (vector
          libname libsym import*
          exports

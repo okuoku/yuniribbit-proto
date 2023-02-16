@@ -201,11 +201,9 @@
      (bytevector-u8-set! bv idx b)
      (loop (+ idx 1)))))
 
-(define (rvm code+exports globals ext done-cb)
+(define (rvm code globals ext done-cb)
   (define not-yet (cons 0 0))
   (define output-result not-yet)
-  (define code (car code+exports))
-  (define exports (cdr code+exports))
   (define externals (vector-map
                       (lambda (v) (realize-ext (vector-ref v 0)
                                                (vector-ref v 1)
@@ -629,9 +627,6 @@
                      (unless (= (_field2 sym) symbol-type)
                        (error "Symbol required" sym))
                      (_rib (symbol->string (_field0 sym)) 0 string-type)))))
-
-  (for-each (lambda (e) (intern! (car e)))
-            exports)
 
   ;; Enter primitives
   (for-each (lambda (e)

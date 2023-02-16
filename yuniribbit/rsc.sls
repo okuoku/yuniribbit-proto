@@ -3,13 +3,6 @@
          (import (yuni scheme))
 
          
-;;
-
-(define (pp obj . x)
-  (write obj)
-  (newline))
-
-
 ;;;----------------------------------------------------------------------------
 
 (define jump/call-op 0)
@@ -68,28 +61,18 @@
 
 ;; The compiler from Ribbit Scheme to RVM code.
 
-(define (make-ctx cte live exports) (rib cte (cons live '()) exports))
+(define (make-ctx cte) (rib cte 0 0))
 
 (define (ctx-cte ctx) (field0 ctx))
-(define (ctx-live ctx) (car (field1 ctx)))
-(define (ctx-exports ctx) (field2 ctx))
 
 (define (ctx-cte-set ctx x)
   (rib x (field1 ctx) (field2 ctx)))
-
-(define (ctx-live-set! ctx x)
-  (set-car! (field1 ctx) x))
 
 (define (comp ctx expr cont)
 
   (cond ((symbol? expr)
          (let ((v (lookup expr (ctx-cte ctx) 0)))
-           (if (eqv? v expr) ;; global?
-               (let ((g (live? expr (ctx-live ctx))))
-                 (if (and g (constant?0 g)) ;; constant propagated?
-                     (rib const-op (cadr (cadr g)) cont)
-                     (rib get-op v cont)))
-               (rib get-op v cont))))
+          (rib get-op v cont)))
 
         ((pair? expr)
          (let ((first (car expr)))
@@ -101,22 +84,7 @@
                   (let ((var (cadr expr)))
                     (let ((val (caddr expr)))
                       (let ((v (lookup var (ctx-cte ctx) 1)))
-                        (if (eqv? v var) ;; global?
-                            ;; FIXME: Tentatively disable DCE
-                            (let ((g (or (cons var var) (live? var (ctx-live ctx)))))
-                              (if g
-                                  (if (and (constant?0 g)
-                                           (not (assoc var (ctx-exports ctx))))
-                                      (begin
-;;                                        (pp `(*** constant propagation of ,var = ,(cadr g))
-;;                                             (current-error-port))
-                                        (gen-noop cont))
-                                      (comp ctx val (gen-assign v cont)))
-                                  (begin
-;;                                    (pp `(*** removed dead assignment to ,var)
-;;                                         (current-error-port))
-                                    (gen-noop cont))))
-                            (comp ctx val (gen-assign v cont)))))))
+                       (comp ctx val (gen-assign v cont))))))
 
                  ((eqv? first 'if)
                   (let ((cont-false (comp ctx (cadddr expr) cont)))
@@ -141,7 +109,7 @@
                           '())
                          (if (null? (ctx-cte ctx))
                              cont
-                             (gen-call #f (use-symbol ctx 'close) cont)))))
+                             (gen-call #f 'close cont)))))
 
                  ((eqv? first 'begin)
                   (comp-begin ctx (cdr expr) cont))
@@ -213,19 +181,15 @@
   (if (eqv? cont tail)
       cont
       (rib jump/call-op ;; call
-           (use-symbol ctx 'arg2)
+           'arg2
            cont)))
-
-(define (use-symbol ctx sym)
-  (ctx-live-set! ctx (add-live sym (ctx-live ctx)))
-  sym)
 
 (define (comp-begin ctx exprs cont)
   (comp ctx
         (car exprs)
         (if (pair? (cdr exprs))
             (rib jump/call-op ;; call
-                 (use-symbol ctx 'arg1)
+                 'arg1
                  (comp-begin ctx (cdr exprs) cont))
             cont)))
 
@@ -254,71 +218,21 @@
 
 ;;;----------------------------------------------------------------------------
 
-(define (extract-exports program)
-  ;; By default all symbols are exported when the program contains
-  ;; no (export ...) form.
-  (let loop ((lst program) (rev-exprs '()) (exports #f))
-    (if (pair? lst)
-        (let ((first (car lst)))
-          (if (and (pair? first) (eqv? (car first) 'export))
-              (loop (cdr lst)
-                    rev-exprs
-                    (append (cdr first) (or exports '())))
-              (loop (cdr lst)
-                    (cons first rev-exprs)
-                    exports)))
-        (cons (reverse rev-exprs) exports))))
 
-(define (exports->alist exports)
-  (if (pair? exports)
-      (map (lambda (x)
-             (if (symbol? x)
-                 (cons x x)
-                 (cons (car x) (cadr x))))
-           exports)
-      exports))
+(define (comp-exprs exprs)
+  (let* ((expansion (expand-begin exprs)))
+   (make-procedure
+     (rib 0 ;; 0 parameters
+          0
+          (comp (make-ctx '())
+                expansion
+                tail))
+     '())))
 
-(define (comp-exprs-with-exports exprs exports)
-  (let* ((expansion
-          (expand-begin exprs))
-         (live
-          (liveness-analysis expansion exports))
-         (exports
-          (or exports
-              (map (lambda (v)
-                     (let ((var (car v)))
-                       (cons var var)))
-                   live))))
-    (cons
-     (make-procedure
-      (rib 0 ;; 0 parameters
-           0
-           (comp (make-ctx '() live exports)
-                 expansion
-                 tail))
-      '())
-     exports)))
-
-(define (compile-program verbosity program)
-  (let* ((exprs-and-exports
-          (extract-exports program))
-         (exprs
-          (car exprs-and-exports))
-         (exports
-          (cdr exprs-and-exports))
-         (proc-and-exports
-          (comp-exprs-with-exports
-           (if (pair? exprs) exprs (cons #f '()))
-           (exports->alist exports))))
-    (if (>= verbosity 2)
-        (begin
-          (display "*** RVM code:\n")
-          (pp (car proc-and-exports))))
-    (if (>= verbosity 3)
-        (begin
-          (display "*** exports:\n")
-          (pp (cdr proc-and-exports))))
-    proc-and-exports))
+(define (compile-program program)
+  (let* ((exprs program)
+         (proc (comp-exprs (if (pair? exprs) exprs (cons #f '())))))
+    proc))
 
 ;;;----------------------------------------------------------------------------
 
@@ -545,142 +459,4 @@
             (expand-list (cdr exprs)))
       '()))
 
-;;;----------------------------------------------------------------------------
-
-;; Global variable liveness analysis.
-
-(define (liveness-analysis expr exports)
-  (let ((live (liveness-analysis-aux expr '())))
-    (if (assoc 'symtbl live)
-        (liveness-analysis-aux expr exports)
-        live)))
-
-(define (liveness-analysis-aux expr exports)
-  (let loop ((live-globals
-              (add-live 'arg1 ;; TODO: these should not be forced live...
-                        (add-live 'arg2
-                                  (add-live 'close
-                                            (add-live 'id
-                                                      (exports->live
-                                                       (or exports '()))))))))
-    (reset-defs live-globals)
-    (let ((x (liveness expr live-globals (not exports))))
-      (if (eqv? x live-globals)
-          live-globals
-          (loop x)))))
-
-(define (exports->live exports)
-  (if (pair? exports)
-      (cons (cons (car (car exports)) '())
-            (exports->live (cdr exports)))
-      '()))
-
-(define (reset-defs lst)
-  (let loop ((lst lst))
-    (if (pair? lst)
-        (begin
-          (set-cdr! (car lst) '())
-          (loop (cdr lst)))
-        #f)))
-
-(define (add-live var live-globals)
-  (if (live? var live-globals)
-      live-globals
-      (let ((g (cons var '())))
-        (cons g live-globals))))
-
-(define (live? var lst)
-  (if (pair? lst)
-      (let ((x (car lst)))
-        (if (eqv? var (car x))
-            x
-            (live? var (cdr lst))))
-      #f))
-
-(define (constant?0 g)
-  (and (pair? (cdr g))
-       (null? (cddr g))
-       (pair? (cadr g))
-       (eqv? 'quote (car (cadr g)))))
-
-(define (in? var cte)
-  (not (eqv? var (lookup var cte 0))))
-
-(define (liveness expr live-globals export-all?)
-
-  (define (add var)
-    (set! live-globals (add-live var live-globals)))
-
-  (define (add-val val)
-    (cond ((symbol? val)
-           (add val))
-          ((pair? val)
-           (add-val (car val))
-           (add-val (cdr val)))
-          ((vector? val)
-           (for-each add-val (vector->list val)))))
-
-  (define (liveness expr cte top?)
-
-    (cond ((symbol? expr)
-           (if (in? expr cte) ;; local var?
-               #f
-               (add expr))) ;; mark the global variable as "live"
-
-          ((pair? expr)
-           (let ((first (car expr)))
-
-             (cond ((eqv? first 'quote)
-                    (let ((val (cadr expr)))
-                      (add-val val)))
-
-                   ((eqv? first 'set!)
-                    (let ((var (cadr expr)))
-                      (let ((val (caddr expr)))
-                        (if (in? var cte) ;; local var?
-                            (liveness val cte #f)
-                            (begin
-                              (if export-all? (add var))
-                              (let ((g (live? var live-globals))) ;; variable live?
-                                (if g
-                                    (begin
-                                      (set-cdr! g (cons val (cdr g)))
-                                      (liveness val cte #f))
-                                    #f)))))))
-
-                   ((eqv? first 'if)
-                    (liveness (cadr expr) cte #f)
-                    (liveness (caddr expr) cte #f)
-                    (liveness (cadddr expr) cte #f))
-
-                   ((eqv? first 'let)
-                    (let ((bindings (cadr expr)))
-                      (liveness-list (map cadr bindings) cte)
-                      (liveness (caddr expr) (append (map car bindings) cte) #f)))
-
-                   ((eqv? first 'begin)
-                    (liveness-list (cdr expr) cte))
-
-                   ((eqv? first 'lambda)
-                    (let ((params (cadr expr)))
-                      (liveness (caddr expr) (extend params cte) #f)))
-
-                   (else
-                    (liveness-list expr cte)))))
-
-          (else
-           #f)))
-
-  (define (liveness-list exprs cte)
-    (if (pair? exprs)
-        (begin
-          (liveness (car exprs) cte #f)
-          (liveness-list (cdr exprs) cte))
-        #f))
-
-  (liveness expr '() #t)
-
-  live-globals)
-
-;;;----------------------------------------------------------------------------
 )
