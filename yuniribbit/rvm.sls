@@ -201,12 +201,11 @@
      (bytevector-u8-set! bv idx b)
      (loop (+ idx 1)))))
 
-(define (rvm code+exports ext done-cb)
+(define (rvm code+exports globals ext done-cb)
   (define not-yet (cons 0 0))
   (define output-result not-yet)
   (define code (car code+exports))
   (define exports (cdr code+exports))
-  (define globals (make-symbol-hashtable))
   (define externals (vector-map
                       (lambda (v) (realize-ext (vector-ref v 0)
                                                (vector-ref v 1)
@@ -221,7 +220,7 @@
     (or (hashtable-ref globals sym #f)
         (let ((r (_make-uninterned-symbol sym)))
          (hashtable-set! globals sym r)
-         ;(write (list 'INTERN: r)) (newline)
+         ;(write (list 'INTERN: sym)) (newline)
          r)))
 
   (define (get-var stack opnd)
@@ -234,6 +233,7 @@
         (else (_list-tail stack opnd)))))
 
   (define (set-var stack opnd val)
+    ;(write (list 'SET-VAR: opnd)) (newline)
     (_field0-set! 
       (cond
         ((_rib? opnd) opnd)
@@ -446,7 +446,7 @@
             "NEVERLAND-putchar" ;; 19 was putchar
             (prim1/term (lambda (x) ;; 20
                           (set! output-result x)
-                          (done-cb output-result)))
+                          (done-cb output-result globals)))
             ;; yuniribbit
             ;; 21: values
             (lambda (vals stack)
@@ -662,7 +662,7 @@
        (_field2 (_field0 code)) ;; instruction stream of main procedure
        (_rib 0 0 (_rib 6 0 0))) ;; primordial continuation = halt
   (when (eq? not-yet output-result)
-    (done-cb #t))
+    (done-cb #t globals))
    ) 
 
 

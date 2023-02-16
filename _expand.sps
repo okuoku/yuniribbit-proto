@@ -43,43 +43,40 @@
     (rvm-primitives)))
 
 (define (merge-output fe)
-  ;; NB: We have added yunife output of (import ...) but we should do
-  ;;     inverse; add a method to query imported library of the expanded
-  ;;     library and remove (import ...) from program/library.
-  ;; FIXME: ... and why not move this to yunife anyway
   (define outseq '())
+  (define progsym (yunife-get-libsym fe #t))
   (define loaded corelibs)
-  (define (code libname) (yunife-get-library-code fe libname))
-  (define (addloaded! libname)
+  (define (code libsym) (yunife-get-library-code fe libsym))
+  (define (macro libsym) (yunife-get-library-macro fe libsym))
+  (define (addloaded! libsym)
     ;(write (list 'ADD: libname)) (newline)
-    (set! loaded (append loaded (list libname))))
-  (define (loaded? libname)
+    (set! loaded (append loaded (list libsym))))
+  (define (loaded? libsym)
     (let loop ((x loaded))
      (and (pair? x)
-          (or (equal? (car x) libname)
+          (or (eq? (car x) libsym)
               (loop (cdr x))))))
 
-  (define (loadlib! libname)
-    (unless (loaded? libname)
-      ;(write (list 'REALIZE: libname)) (newline)
-      (process libname)))
+  (define (loadlib! libsym libname)
+    (unless (loaded? libsym)
+      ;(write (list 'REALIZE: libsym)) (newline)
+      (process libsym libname)))
 
-  (define (process libname)
-    (let ((seq (code libname)))
-     (cond
-       ((and (pair? seq) (pair? (car seq))
-             (eq? 'import (caar seq)))
-        (let ((libs (cdar seq)))
-         (for-each loadlib! libs))
-        (set! outseq (append outseq (cdr seq)))
-        (when (pair? libname)
-          (addloaded! libname)))
+  (define (process libsym libname)
+    ;(write (list 'PROCESS: libsym)) (newline)
+    (let* ((seq (code libsym))
+           (mac #f) ;; FIXME: Implement it
+           (imports (or (yunife-get-library-imports fe libsym) '()))
+           (exports (yunife-get-library-exports fe libsym))
+           (import* (map (lambda (libname) (yunife-get-libsym fe libname))
+                         imports)))
+      (for-each loadlib! import* imports)
+      (set! outseq (cons (vector libname libsym import* exports seq mac) 
+                         outseq))
+      (addloaded! libsym)))
 
-       (else
-         (error "Malformed library" libname)))))
-
-  (process #t)
-  outseq)
+  (process progsym #t)
+  (reverse outseq))
 
 ;(write (list 'ARGS: args)) (newline)
 

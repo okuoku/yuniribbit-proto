@@ -27,6 +27,22 @@
         (else (set! args d))))
     (consume-args)))
 
+(define (compile-bundle x)
+  (define (proc1 v)
+    (let ((libname (vector-ref v 0))
+          (libsym (vector-ref v 1))
+          (import* (vector-ref v 2))
+          (exports (vector-ref v 3))
+          (seq (vector-ref v 4))
+          (mac (vector-ref v 5)))
+      (let ((c (compile-program 0 seq)))
+       (vector
+         libname libsym import*
+         exports
+         c
+         mac))))
+  (map proc1 x))
+
 (consume-args)
 
 (unless in
@@ -41,7 +57,7 @@
   (open-binary-input-file in)
   (lambda (p)
     (let* ((x (drypack-get p))
-           (c (compile-program 0 x)))
+           (c (compile-bundle x)))
       (when (file-exists? out)
         (delete-file out))
       (call-with-port
