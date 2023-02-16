@@ -5,7 +5,7 @@
          
 ;;
 
-(define (pp obj)
+(define (pp obj . x)
   (write obj)
   (newline))
 
@@ -102,7 +102,8 @@
                     (let ((val (caddr expr)))
                       (let ((v (lookup var (ctx-cte ctx) 1)))
                         (if (eqv? v var) ;; global?
-                            (let ((g (live? var (ctx-live ctx))))
+                            ;; FIXME: Tentatively disable DCE
+                            (let ((g (or (cons var var) (live? var (ctx-live ctx)))))
                               (if g
                                   (if (and (constant?0 g)
                                            (not (assoc var (ctx-exports ctx))))
