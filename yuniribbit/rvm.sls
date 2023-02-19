@@ -127,6 +127,7 @@
 
 (define (realize-ext procname proc args results)
   (lambda (vals stack)
+    ;(write (list 'EXT: procname)) (newline)
     (let loop ((rest (if (eq? args #t) vals args))
                (cur '())
                (stack stack))
@@ -168,6 +169,8 @@
      (bytevector-u8-set! bv idx b)
      (loop (+ idx 1)))))
 
+(define none (list "NOT-FOUND!!"))
+
 (define (rvm code globals ext done-cb)
   (define not-yet (cons 0 0))
   (define output-result not-yet)
@@ -185,16 +188,20 @@
          r)))
 
   (define (get-var stack opnd)
-    ;(write (list 'GET-VAR: opnd)) (newline)
+    ;(when (symbol? opnd) (write (list 'GET-VAR: opnd)) (newline))
     (_field0 
       (cond
         ((_rib? opnd) 
          opnd)
-        ((symbol? opnd) (hashtable-ref globals opnd "NOT-FOUND!!"))
+        ((symbol? opnd) 
+         (let ((r (hashtable-ref globals opnd none)))
+          (when (eq? r none)
+            (error "Could not resolve symbol" opnd))
+          r))
         (else (_list-tail stack opnd)))))
 
   (define (set-var stack opnd val)
-    ;(write (list 'SET-VAR: opnd)) (newline)
+    ;(when (symbol? opnd) (write (list 'SET-VAR: opnd)) (newline))
     (_field0-set! 
       (cond
         ((_rib? opnd) opnd)
