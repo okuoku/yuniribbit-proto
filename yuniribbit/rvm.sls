@@ -2,6 +2,7 @@
          (export rvm)
          (import (yuni scheme)
                  (yuni hashtables)
+                 (yuniribbit heapext)
                  (yuniribbit heapcore))
 
 
@@ -364,105 +365,6 @@
       (vector 'list->values (lambda (vals stack)
                               (_cons (_rib (_car stack) 0 values-type)
                                      (_cdr stack))) #f #f)
-      (vector 'vec-copy (lambda (vec start end)
-                          (cond
-                            ((_bytevector? vec)
-                             (let* ((bv (_field0 vec))
-                                    (newbv (if (= start -1)
-                                               (bytevector-copy bv)
-                                               (bytevector-copy bv start end))))
-                               (_wrap-bytevector newbv)))
-                            (else
-                              (error "Unimpl: vec-copy" vec)))) 3 1)
-      (vector 'vec-copy! (lambda (tgt loc src start end)
-                           (cond
-                             ((_string? tgt)
-                              (string-copy! (_field0 tgt) loc (_field0 src)
-                                            start end)
-                              _true)
-                             ((_vector? tgt)
-                              (vector-copy! (_field0 tgt) loc (_field0 src)
-                                            start end)
-                              _true)
-                             ((_bytevector? tgt)
-                              (let ((bv1 (_field0 tgt))
-                                    (bv2 (_field0 src)))
-                                (bytevector-copy! bv1 loc bv2 start end))
-                              _true)
-                             (else
-                               (error "Unimpl: vec-copy!")))) 5 1)
-      (vector 'vec-ref (lambda (vec idx)
-                         (cond
-                           ((_string? vec)
-                            (string-ref (_field0 vec) idx))
-                           ((_vector? vec)
-                            (vector-ref (_field0 vec) idx))
-                           ((_simple-struct? vec)
-                            (vector-ref (_field0 vec) (+ 1 idx)))
-                           ((_bytevector? vec)
-                            (let ((bv (_field0 vec)))
-                             (bytevector-u8-ref bv idx)))
-                           (else
-                             (error "Unimpl: vec-ref")))) 2 1)
-      (vector 'vec-set! (lambda (vec idx obj)
-                          (cond
-                            ((_vector? vec)
-                             (vector-set! (_field0 vec) idx obj)
-                             _true)
-                            ((_simple-struct? vec)
-                             (vector-set! (_field0 vec) (+ 1 idx) obj)
-                             _true)
-                            ((_bytevector? vec)
-                             (let ((bv (_field0 vec)))
-                              (bytevector-u8-set! bv idx obj))
-                             _true)
-                            (else
-                              (error "Unimpl: vec-set!")))) 3 1)
-      (vector 'vec-new (lambda (tag k)
-                         (cond
-                           ((= tag 4)
-                            (_wrap-vector (make-vector k)))
-                           ((= tag 9)
-                            (_wrap-simple-struct (make-vector (+ k 1))))
-                           ((= tag 3)
-                            (_wrap-string (make-string k)))
-                           ((= tag 8)
-                            (_wrap-bytevector (make-bytevector k)))
-                           (else
-                             (error "Unimpl: vec-new" tag)))) 2 1)
-      (vector 'vec-length (lambda (vec)
-                            (cond
-                              ((_string? vec)
-                               (string-length (_field0 vec)))
-                              ((_vector? vec)
-                               (vector-length (_field0 vec)))
-                              ((_bytevector? vec)
-                               (let ((bv (_field0 vec)))
-                                (bytevector-length bv)))
-                              (else
-                                (error "Unimpl: vec-length")))) 1 1)
-      (vector 'vec-fill! (lambda (vec obj from to)
-                           (cond
-                             ((_string? vec)
-                              (string-fill! (_field0 vec) obj from to)
-                              _true)
-                             ((_vector? vec)
-                              (vector-fill! (_field0 vec) obj from to)
-                              _true)
-                             ((_bytevector? vec)
-                              (let ((bv (_field0 vec)))
-                               (bytevector-fill! bv obj from to)
-                               _true))
-                             (else
-                               (error "Unimpl: vec-fill!")))) 4 1)
-      (vector 'vec= (lambda (x y)
-                      (cond
-                        ((_string? x)
-                         (if (string=? (_field0 x) (_field0 y))
-                             _true
-                             _false))
-                        (else
-                          (error "Unimpl: vec=")))) 2 1)
       (vector 'error (primn (lambda x
                               (error "Error" x))) #f #f)
       (vector 'string->symbol (lambda (str)
@@ -474,38 +376,12 @@
       (vector 'procedure? (lambda (x)
                             ;(write (list 'PROCEDURE-FIXME: x)) (newline)
                             _false) 1 1)
-      (vector 'ht-new (lambda (x)
-                        (_wrap-hashtable ((case x
-                                 ((0) make-eq-hashtable)
-                                 ((1) make-eqv-hashtable)
-                                 ((2) make-integer-hashtable)
-                                 ((3) make-string-hashtable)
-                                 ((4) make-symbol-hashtable)))
-                              x)) 1 1)
-      (vector 'hashtable-set! (lambda (ht key obj)
-                                (hashtable-set! (_field0 ht) key obj)
-                                _true) 3 1)
-      (vector 'hashtable-entries (lambda (ht)
-                                   (call-with-values
-                                     (lambda () (hashtable-entries (_field0 ht)))
-                                     (lambda (keys vals)
-                                       (let ((v1 (_wrap-vector keys))
-                                             (v2 (_wrap-vector vals)))
-                                         (_rib (_cons v1 (_cons v2 _nil)) 0 values-type)))))
-              1 1)
-      (vector 'hashtable-ref (lambda (ht key default)
-                               (hashtable-ref (_field0 ht) key default)) 3 1)
-      (vector 'hashtable-keys (lambda (ht)
-                                (_wrap-vector (hashtable-keys (_field0 ht)))) 1 1)
-      (vector 'hashtable-size (lambda (ht)
-                                (hashtable-size (_field0 ht))) 1 1)
       (vector 'symbol->string (lambda (sym)
                                 (unless (_symbol? sym)
                                   (error "Symbol required" sym))
-                                (_wrap-string (symbol->string (_field0 sym)))) 1 1)  
-      )
-    )
+                                (_wrap-string (symbol->string (_field0 sym)))) 1 1)))
   
+  (define raw-primitives (vector-append local-primitives (heapext-ops)))
 
   ;; Enter primitives
 
@@ -519,7 +395,7 @@
                                    (vector-ref v 1)
                                    (vector-ref v 2)
                                    (vector-ref v 3)))
-        local-primitives) 
+        raw-primitives) 
       ;; obj-in/obj-out primitives
       (vector-map
         (lambda (v) (realize-ext (vector-ref v 0)
@@ -530,7 +406,7 @@
 
   (set! external-names
     (vector-map (lambda (v) (vector-ref v 0))
-                (vector-append local-primitives ext)))
+                (vector-append raw-primitives ext)))
 
   (let ((offset (+ -12 -1)))
    (let loop ((idx 0))
