@@ -1,60 +1,14 @@
 (library (yuniribbit rvm)
          (export rvm)
          (import (yuni scheme)
-                 (yuni hashtables))
+                 (yuni hashtables)
+                 (yuniribbit heapcore))
 
-(define pair-type      0)
-(define procedure-type 1)
-(define symbol-type    2)
-(define string-type    3)
-(define vector-type    4)
-(define singleton-type 5)
-(define values-type    6) ;; yuniribbit (lis 0 TYPE)
-;; 7 was char-type
-(define bytevector-type 8) ;; yuniribbit
-(define simple-struct-type 9) ;; yuniribbit
-(define hashtable-type 10) ;; yuniribbit
-
-(define (_rib? x) (vector? x))
-(define (_rib x y z) (vector x y z))
-(define (_field0 x) (vector-ref x 0))
-(define (_field1 x) (vector-ref x 1))
-(define (_field2 x) (vector-ref x 2))
-(define (_field0-set! x y) (vector-set! x 0 y))
-(define (_field1-set! x y) (vector-set! x 1 y))
-(define (_field2-set! x y) (vector-set! x 2 y))
-
-(define (_rib?/real x) (and (vector? x) 
-                            (= 3 (vector-length x))))
-
-(define (instance? type)
-  (lambda (x) (and (_rib?/real x) (eqv? (_field2 x) type))))
-
-(define _pair? (instance? pair-type))
-(define (_cons car cdr) (_rib car cdr pair-type))
-(define (_car pair) (_field0 pair))
-(define (_cdr pair) (_field1 pair))
-(define (_set-car! pair x) (_field0-set! pair x))
-
-(define (_make-uninterned-symbol str) 
-  ;(_rib _false str symbol-type)
-  (_rib str str symbol-type) ;; debug
-  )
-
-(define _false (_rib "false" 0 singleton-type))
-(define _true  (_rib "true" 0 singleton-type))
-(define _nil   (_rib "nil" 0 singleton-type))
-(define _eof-object (_rib "eof-object" 0 singleton-type))
 
 (define (_list-tail lst i)
   (if (< 0 i)
       (_list-tail (_cdr lst) (- i 1))
       lst))
-
-(define (_length lst)
-  (if (_pair? lst)
-      (+ 1 (_length (_cdr lst)))
-      0))
 
 (define (get-cont stack)
   (let loop ((stack stack))
@@ -117,13 +71,6 @@
 (define (boolean x)
   (if x _true _false))
 
-(define _symbol? (instance? symbol-type))
-(define _string? (instance? string-type))
-(define _vector? (instance? vector-type))
-(define _bytevector? (instance? bytevector-type))
-(define _simple-struct? (instance? simple-struct-type))
-(define _procedure? (instance? procedure-type))
-
 (define (import-string x) 
   (unless (_string? x)
     (error "tried to import non-string" x))
@@ -153,8 +100,8 @@
     ((eof-object? x) _eof-object)
     ((char? x) x)
     ((null? x) _nil)
-    ((string? x) (_rib x 0 string-type))
-    ((bytevector? x) (_rib x 0 bytevector-type))
+    ((string? x) (_wrap-string x))
+    ((bytevector? x) (_wrap-bytevector x))
     (else
       (error "Unsupported primitive object" x))))
 
@@ -204,11 +151,11 @@
              ((char? opnd) opnd)
              ((null? opnd) _nil)
              ((boolean? opnd) (if opnd _true _false))
-             ((string? opnd) (_rib opnd 0 string-type))
+             ((string? opnd) (_wrap-string opnd))
              ((pair? opnd) (_cons (encode-constant (car opnd) intern!)
                                   (encode-constant (cdr opnd) intern!)))
              ((_procedure? opnd) opnd)
-             ((vector? opnd) (_rib opnd 0 vector-type))
+             ((vector? opnd) (_wrap-vector opnd))
              ((symbol? opnd) (intern! opnd))
              (else 
                (error "Unknown constant" opnd)
@@ -424,7 +371,7 @@
                                     (newbv (if (= start -1)
                                                (bytevector-copy bv)
                                                (bytevector-copy bv start end))))
-                               (_rib newbv 0 bytevector-type)))
+                               (_wrap-bytevector newbv)))
                             (else
                               (error "Unimpl: vec-copy" vec)))) 3 1)
       (vector 'vec-copy! (lambda (tgt loc src start end)
@@ -463,7 +410,6 @@
                              (vector-set! (_field0 vec) idx obj)
                              _true)
                             ((_simple-struct? vec)
-                             ;(write (list 'VEC: vec idx obj)) (newline)
                              (vector-set! (_field0 vec) (+ 1 idx) obj)
                              _true)
                             ((_bytevector? vec)
@@ -474,16 +420,14 @@
                               (error "Unimpl: vec-set!")))) 3 1)
       (vector 'vec-new (lambda (tag k)
                          (cond
-                           ((= tag vector-type)
-                            ;(write (list 'VECNEW: k)) (newline)
-                            (_rib (make-vector k) 0 vector-type))
-                           ((= tag simple-struct-type)
-                            (_rib (make-vector (+ k 1)) 0 simple-struct-type))
-                           ((= tag string-type)
-                            (_rib (make-string k) 0 string-type))
-                           ((= tag bytevector-type)
-                            (let ((bv (make-bytevector k)))
-                             (_rib bv 0 bytevector-type)))
+                           ((= tag 4)
+                            (_wrap-vector (make-vector k)))
+                           ((= tag 9)
+                            (_wrap-simple-struct (make-vector (+ k 1))))
+                           ((= tag 3)
+                            (_wrap-string (make-string k)))
+                           ((= tag 8)
+                            (_wrap-bytevector (make-bytevector k)))
                            (else
                              (error "Unimpl: vec-new" tag)))) 2 1)
       (vector 'vec-length (lambda (vec)
@@ -522,7 +466,7 @@
       (vector 'error (primn (lambda x
                               (error "Error" x))) #f #f)
       (vector 'string->symbol (lambda (str)
-                                (unless (= string-type (_field2 str))
+                                (unless (_string? str)
                                   (error "String required" str))
                                 (let* ((name (_field0 str))
                                        (namesym (string->symbol name)))
@@ -531,14 +475,13 @@
                             ;(write (list 'PROCEDURE-FIXME: x)) (newline)
                             _false) 1 1)
       (vector 'ht-new (lambda (x)
-                        (_rib ((case x
+                        (_wrap-hashtable ((case x
                                  ((0) make-eq-hashtable)
                                  ((1) make-eqv-hashtable)
                                  ((2) make-integer-hashtable)
                                  ((3) make-string-hashtable)
                                  ((4) make-symbol-hashtable)))
-                              x
-                              hashtable-type)) 1 1)
+                              x)) 1 1)
       (vector 'hashtable-set! (lambda (ht key obj)
                                 (hashtable-set! (_field0 ht) key obj)
                                 _true) 3 1)
@@ -546,20 +489,20 @@
                                    (call-with-values
                                      (lambda () (hashtable-entries (_field0 ht)))
                                      (lambda (keys vals)
-                                       (let ((v1 (_rib keys 0 vector-type))
-                                             (v2 (_rib vals 0 vector-type)))
+                                       (let ((v1 (_wrap-vector keys))
+                                             (v2 (_wrap-vector vals)))
                                          (_rib (_cons v1 (_cons v2 _nil)) 0 values-type)))))
               1 1)
       (vector 'hashtable-ref (lambda (ht key default)
                                (hashtable-ref (_field0 ht) key default)) 3 1)
       (vector 'hashtable-keys (lambda (ht)
-                                (_rib (hashtable-keys (_field0 ht)) 0 vector-type)) 1 1)
+                                (_wrap-vector (hashtable-keys (_field0 ht)))) 1 1)
       (vector 'hashtable-size (lambda (ht)
                                 (hashtable-size (_field0 ht))) 1 1)
       (vector 'symbol->string (lambda (sym)
-                                (unless (= (_field2 sym) symbol-type)
+                                (unless (_symbol? sym)
                                   (error "Symbol required" sym))
-                                (_rib (symbol->string (_field0 sym)) 0 string-type)) 1 1)  
+                                (_wrap-string (symbol->string (_field0 sym)))) 1 1)  
       )
     )
   
