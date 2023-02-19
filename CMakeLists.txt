@@ -14,6 +14,7 @@ set(testsrcs
     ${tests}/scheme/core2.sps
     ${tests}/scheme/vectors0.sps
     ${tests}/scheme/bytevectors0.sps
+    ${tests}/scheme/inexact0.sps
     ${tests}/scheme/inexact1.sps
     ${tests}/scheme/inexact2.sps
     ${tests}/scheme/iter0.sps
@@ -35,8 +36,7 @@ set(testsrcs
 
 set(negativetestsrcs
     # Run phase
-    ${tests}/scheme/inexact0.sps # multiple failures
-    ${tests}/scheme/inexact3.sps # 1 failure
+    ${tests}/scheme/inexact3.sps # SIBR0013
     ${tests}/scheme/qq0.sps # ???
     ${tests}/scheme/exp0.sps # ???
     ${tests}/scheme/exp1.sps # make-parameter

@@ -96,6 +96,7 @@
 
 (define (export-value x)
   (cond
+    ((pair? x) (_cons (export-value (car x)) (export-value (cdr x))))
     ((number? x) x)
     ((boolean? x) (boolean x))
     ((eof-object? x) _eof-object)
@@ -135,6 +136,11 @@
         (error "FIXME: Wrong arg count" procname vals))
       (if (= rest 0)
           (case results
+            ((2)
+             (call-with-values 
+               (lambda () (apply proc cur))
+               (lambda res
+                 (_cons (_rib (export-value res) 0 values-type) stack))))
             ((1)
              (let ((r (apply proc cur)))
               (_cons (export-value r) stack)))

@@ -183,8 +183,8 @@
       (vector '$fx/ $fx/ #t 1)
       (vector '$fx->fl inexact #t 1)
       (vector '$fx-expt $fx-expt #t 1)
-      (vector '$fx-floor/ $fx-floor/ #t 1)
-      (vector '$fx-truncate/ $fx-truncate/ #t 1)
+      (vector '$fx-floor/ $fx-floor/ #t 2)
+      (vector '$fx-truncate/ $fx-truncate/ #t 2)
       (vector '$fl-nan? nan? #t 1)
       (vector '$fl-finite? finite? #t 1)
       (vector '$fl-infinite? xinfinite? #t 1)
@@ -214,8 +214,8 @@
       (vector '$fl-log log #t 1)
       (vector '$fl-loge log #t 1)
       (vector '$fl-sqrt sqrt #t 1)
-      (vector '$fl-floor/ $fl-floor/ #t 1)
-      (vector '$fl-truncate/ $fl-truncate/ #t 1)
+      (vector '$fl-floor/ $fl-floor/ #t 2)
+      (vector '$fl-truncate/ $fl-truncate/ #t 2)
 
       ;; Files
       (vector 'file-exists? file-exists? 1 1)
