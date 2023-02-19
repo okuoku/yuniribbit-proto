@@ -24,25 +24,12 @@
         (number->string num (car radix?))))
 
   (define ($fixnum? x) (and (exact? x) (integer? x)))
-  (define $flonum? inexact?)
 
-  (define $fx= =)
-  (define $fx<= <=)
-  (define $fx>= >=)
-  (define $fx< <)
-  (define $fx> >)
-
-  (define $fx+ +)
-  (define $fx- -)
-  (define $fx* *)
   (define ($fx/ a b) (exact (/ a b)))
-  (define $fx->fl inexact)
   (define ($fx-expt a b) (exact (expt a b)))
   (define $fx-floor/ (pexact2 floor/))
   (define $fx-truncate/ (pexact2 truncate/))
 
-  (define $fl-nan? nan?)
-  (define $fl-finite? finite?)
   ;; FIXME: We should have this one in (yuni scheme)
   (define (xinfinite? val)
     (cond
@@ -50,33 +37,11 @@
       ((nan? val) #f)
       (else #t)))
 
-  (define $fl-infinite? xinfinite?)
-  (define $fl= =)
-  (define $fl<= <=)
-  (define $fl>= >=)
-  (define $fl< <)
-  (define $fl> >)
   (define $fl+ (pinexact +))
   (define $fl- (pinexact -))
   (define $fl* (pinexact *))
   (define $fl/ (pinexact /))
-  (define $fl->fx exact)
   (define $fl-expt (pinexact expt))
-  (define $fl-floor floor)
-  (define $fl-ceiling ceiling)
-  (define $fl-truncate truncate)
-  (define $fl-round round)
-  (define $fl-acos acos)
-  (define $fl-asin asin)
-  (define $fl-atan atan)
-  (define $fl-atan2 atan)
-  (define $fl-cos cos)
-  (define $fl-sin sin)
-  (define $fl-tan tan)
-  (define $fl-exp exp)
-  (define $fl-log log)
-  (define $fl-loge log)
-  (define $fl-sqrt sqrt)
   (define $fl-floor/ (pinexact2 floor/))
   (define $fl-truncate/ (pinexact2 truncate/))
 
@@ -189,145 +154,74 @@
       (set! ext-library-initialized #t))
 
     (vector
-      ;char?
       (vector 'char? char? 1 1)
-      ;char->integer 
       (vector 'char->integer char->integer 1 1)
-      ;integer->char
       (vector 'integer->char integer->char 1 1)
-      ;file-exists?
       (vector 'file-exists? file-exists? 1 1)
-      ;delete-file
       (vector 'delete-file delete-file 1 1)
-      ;string->utf8
       (vector 'string->utf8 string->utf8 #t 1)
-      ;utf8->string
       (vector 'utf8->string utf8->string #t 1)
-      ;vector->string
       (vector 'vector->string vector->string #t 1)
-      ;number->string
       (vector 'number->string $$number->string #t 1)
-      ;string->number
       (vector 'string->number string->number #t 1)
-      ;list->string
       (vector 'list->string list->string 1 1)
-      ;<
       (vector '< < #t 1)
-      ;+
       (vector '+ + #t 1)
-      ;-
       (vector '- - #t 1)
-      ;*
       (vector '* * #t 1)
-      ;$fixnum?
       (vector '$fixnum? $fixnum? 1 1)
-      ;$flonum?
-      (vector '$flonum? $flonum? 1 1)
-      ;$fx=
-      (vector '$fx= $fx= #t 1)
-      ;$fx<=
-      (vector '$fx<= $fx<= #t 1)
-      ;$fx>=
-      (vector '$fx>= $fx>= #t 1)
-      ;$fx<
-      (vector '$fx< $fx< #t 1)
-      ;$fx>
-      (vector '$fx> $fx> #t 1)
-      ;$fx+
-      (vector '$fx+ $fx+ #t 1)
-      ;$fx-
-      (vector '$fx- $fx- #t 1)
-      ;$fx*
-      (vector '$fx* $fx* #t 1)
-      ;$fx/
+      (vector '$flonum? inexact? 1 1)
+      (vector '$fx= = #t 1)
+      (vector '$fx<= <= #t 1)
+      (vector '$fx>= >= #t 1)
+      (vector '$fx< < #t 1)
+      (vector '$fx> > #t 1)
+      (vector '$fx+ + #t 1)
+      (vector '$fx- - #t 1)
+      (vector '$fx* * #t 1)
       (vector '$fx/ $fx/ #t 1)
-      ;$fx->fl
-      (vector '$fx->fl $fx->fl #t 1)
-      ;$fx-expt
+      (vector '$fx->fl inexact #t 1)
       (vector '$fx-expt $fx-expt #t 1)
-      ;$fx-floor/
       (vector '$fx-floor/ $fx-floor/ #t 1)
-      ;$fx-truncate/
       (vector '$fx-truncate/ $fx-truncate/ #t 1)
-      ;$fl-nan?
-      (vector '$fl-nan? $fl-nan? #t 1)
-      ;$fl-finite?
-      (vector '$fl-finite? $fl-finite? #t 1)
-      ;$fl-infinite?
-      (vector '$fl-infinite? $fl-infinite? #t 1)
-      ;$fl=
-      (vector '$fl= $fl= #t 1)
-      ;$fl<=
-      (vector '$fl<= $fl<= #t 1)
-      ;$fl>=
-      (vector '$fl>= $fl>= #t 1)
-      ;$fl<
-      (vector '$fl< $fl< #t 1)
-      ;$fl>
-      (vector '$fl> $fl> #t 1)
-      ;$fl+
+      (vector '$fl-nan? nan? #t 1)
+      (vector '$fl-finite? finite? #t 1)
+      (vector '$fl-infinite? xinfinite? #t 1)
+      (vector '$fl= = #t 1)
+      (vector '$fl<= <= #t 1)
+      (vector '$fl>= >= #t 1)
+      (vector '$fl< < #t 1)
+      (vector '$fl> > #t 1)
       (vector '$fl+ $fl+ #t 1)
-      ;$fl-
       (vector '$fl- $fl- #t 1)
-      ;$fl*
       (vector '$fl* $fl* #t 1)
-      ;$fl/
       (vector '$fl/ $fl/ #t 1)
-      ;$fl->fx
-      (vector '$fl->fx $fl->fx #t 1)
-      ;$fl-expt
+      (vector '$fl->fx exact #t 1)
       (vector '$fl-expt $fl-expt #t 1)
-      ;$fl-floor
-      (vector '$fl-floor $fl-floor #t 1)
-      ;$fl-ceiling
-      (vector '$fl-ceiling $fl-ceiling #t 1)
-      ;$fl-truncate
-      (vector '$fl-truncate $fl-truncate #t 1)
-      ;$fl-round
-      (vector '$fl-round $fl-round #t 1)
-      ;$fl-acos
-      (vector '$fl-acos $fl-acos #t 1)
-      ;$fl-asin
-      (vector '$fl-asin $fl-asin #t 1)
-      ;$fl-atan
-      (vector '$fl-atan $fl-atan #t 1)
-      ;$fl-atan2
-      (vector '$fl-atan2 $fl-atan2 #t 1)
-      ;$fl-cos
-      (vector '$fl-cos $fl-cos #t 1)
-      ;$fl-sin
-      (vector '$fl-sin $fl-sin #t 1)
-      ;$fl-tan
-      (vector '$fl-tan $fl-tan #t 1)
-      ;$fl-exp
-      (vector '$fl-exp $fl-exp #t 1)
-      ;$fl-log
-      (vector '$fl-log $fl-log #t 1)
-      ;$fl-loge
-      (vector '$fl-loge $fl-loge #t 1)
-      ;$fl-sqrt
-      (vector '$fl-sqrt $fl-sqrt #t 1)
-      ;$fl-floor/
+      (vector '$fl-floor floor #t 1)
+      (vector '$fl-ceiling ceiling #t 1)
+      (vector '$fl-truncate truncate #t 1)
+      (vector '$fl-round round #t 1)
+      (vector '$fl-acos acos #t 1)
+      (vector '$fl-asin asin #t 1)
+      (vector '$fl-atan atan #t 1)
+      (vector '$fl-atan2 atan #t 1)
+      (vector '$fl-cos cos #t 1)
+      (vector '$fl-sin sin #t 1)
+      (vector '$fl-tan tan #t 1)
+      (vector '$fl-exp exp #t 1)
+      (vector '$fl-log log #t 1)
+      (vector '$fl-loge log #t 1)
+      (vector '$fl-sqrt sqrt #t 1)
       (vector '$fl-floor/ $fl-floor/ #t 1)
-      ;$fl-truncate/
       (vector '$fl-truncate/ $fl-truncate/ #t 1)
-
-      ;(filehandle-open/input filename)
       (vector 'filehandle-open/input filehandle-open/input 1 1)
-      ;(filehandle-open/output filename)
       (vector 'filehandle-open/output filehandle-open/output 1 1)
-      ;(filehandle-close fh)
       (vector 'filehandle-close filehandle-close 1 1)
-      ;(filehandle-read! fh bv offs len)
       (vector 'filehandle-read! filehandle-read! 4 1)
-      ;(filehandle-write fh bv offs len)
       (vector 'filehandle-write filehandle-write 4 1)
-      ;(filehandle-flush fh)
       (vector 'filehandle-flush filehandle-flush 1 1)
-      ;(filehandle-stdin)
       (vector 'filehandle-stdin filehandle-stdin 0 1)
-      ;(filehandle-stdout)
       (vector 'filehandle-stdout filehandle-stdout 0 1)
-      ;(filehandle-stderr)
       (vector 'filehandle-stderr filehandle-stderr 0 1)))
   )
