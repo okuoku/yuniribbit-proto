@@ -147,21 +147,6 @@
                 (cons (import-value (_car stack)) cur)
                 (_cdr stack))))))
 
-(define (encode-constant opnd intern!)
-  (let ((v (cond
-             ((number? opnd) opnd)
-             ((char? opnd) opnd)
-             ((null? opnd) _nil)
-             ((boolean? opnd) (if opnd _true _false))
-             ((string? opnd) (_wrap-string opnd))
-             ((pair? opnd) (_cons (encode-constant (car opnd) intern!)
-                                  (encode-constant (cdr opnd) intern!)))
-             ((_procedure? opnd) opnd)
-             ((vector? opnd) (_wrap-vector opnd))
-             ((symbol? opnd) (intern! opnd))
-             (else 
-               (error "Unknown constant" opnd)
-               opnd))))))
 
 (define (bytevector-fill! bv b start end)
   (let loop ((idx start))
@@ -177,15 +162,31 @@
   (define externals #f)
   (define external-names #f)
 
-
   (define (intern! sym)
     (unless (symbol? sym)
       (error "Unknown symbol" sym))
     (or (hashtable-ref globals sym #f)
         (let ((r (_make-uninterned-symbol sym)))
-         (hashtable-set! globals sym r)
-         ;(write (list 'INTERN: sym)) (newline)
-         r)))
+          (hashtable-set! globals sym r)
+          ;(write (list 'INTERN: sym)) (newline)
+          r)))
+
+  (define (encode-constant opnd)
+    (cond
+      ((number? opnd) opnd)
+      ((char? opnd) opnd)
+      ((null? opnd) _nil)
+      ((boolean? opnd) (if opnd _true _false))
+      ((string? opnd) (_wrap-string opnd))
+      ((pair? opnd) (_cons (encode-constant (car opnd))
+                           (encode-constant (cdr opnd))))
+      ((_procedure? opnd) opnd)
+      ((vector? opnd) (_wrap-vector (vector-map encode-constant opnd)))
+      ((symbol? opnd) (intern! opnd))
+      (else 
+        (error "Unknown constant" opnd)
+        opnd)))
+
 
   (define (get-var stack opnd)
     ;(when (symbol? opnd) (write (list 'GET-VAR: opnd)) (newline))
@@ -195,9 +196,9 @@
          opnd)
         ((symbol? opnd) 
          (let ((r (hashtable-ref globals opnd none)))
-          (when (eq? r none)
-            (error "Could not resolve symbol" opnd))
-          r))
+           (when (eq? r none)
+             (error "Could not resolve symbol" opnd))
+           r))
         (else (_list-tail stack opnd)))))
 
   (define (set-var stack opnd val)
@@ -223,46 +224,46 @@
 
              ;; calling a lambda
              (let ((new-cont (_rib 0 proc 0)))
-              ;; Audit and construct arguments
-              (let* ((layout (_field0 code)) ;; was nargs param
-                     ;; argnc: "rest" argument count
-                     (argnc (if (and vals (< layout 0))
-                              (+ vals 1 layout)
-                              0))
-                     ;; nargs: physical argument count
-                     (nargs (if (< layout 0)
-                              (- 0 layout)
-                              layout)))
-                ;(write (list 'CALL: layout argnc nargs)) (newline)
-                ;; Audit nargs
-                (when (and vals (< argnc 0) (< vals nargs))
-                  (error "Unmatched argument count" vals nargs))
-               (let aloop ((acc _nil)
-                           (stack stack)
-                           (res argnc))
-                 (if (< 0 res)
-                   (aloop (_cons (_car stack) acc) (_cdr stack) (- res 1))
-                   (let loop ((nargs nargs)
-                              (new-stack new-cont)
-                              (stack (if (= argnc 0) 
-                                       (if (< layout 0) 
+               ;; Audit and construct arguments
+               (let* ((layout (_field0 code)) ;; was nargs param
+                      ;; argnc: "rest" argument count
+                      (argnc (if (and vals (< layout 0))
+                               (+ vals 1 layout)
+                               0))
+                      ;; nargs: physical argument count
+                      (nargs (if (< layout 0)
+                               (- 0 layout)
+                               layout)))
+                 ;(write (list 'CALL: layout argnc nargs)) (newline)
+                 ;; Audit nargs
+                 (when (and vals (< argnc 0) (< vals nargs))
+                   (error "Unmatched argument count" vals nargs))
+                 (let aloop ((acc _nil)
+                             (stack stack)
+                             (res argnc))
+                   (if (< 0 res)
+                     (aloop (_cons (_car stack) acc) (_cdr stack) (- res 1))
+                     (let loop ((nargs nargs)
+                                (new-stack new-cont)
+                                (stack (if (= argnc 0) 
+                                         (if (< layout 0) 
                                            (_cons _nil stack)
                                            stack)
-                                       (_cons acc stack))))
-                     (if (< 0 nargs)
-                       (loop (- nargs 1)
-                             (_cons (_car stack) new-stack)
-                             (_cdr stack))
-                       (begin
-                         (if (_rib? next) ;; non-tail call?
-                           (begin
-                             (_field0-set! new-cont stack)
-                             (_field2-set! new-cont next))
-                           (let ((k (get-cont stack)))
-                            (_field0-set! new-cont (_field0 k))
-                            (_field2-set! new-cont (_field2 k))))
-                         (run #f (_field2 code)
-                              new-stack))))))))
+                                         (_cons acc stack))))
+                       (if (< 0 nargs)
+                         (loop (- nargs 1)
+                               (_cons (_car stack) new-stack)
+                               (_cdr stack))
+                         (begin
+                           (if (_rib? next) ;; non-tail call?
+                             (begin
+                               (_field0-set! new-cont stack)
+                               (_field2-set! new-cont next))
+                             (let ((k (get-cont stack)))
+                               (_field0-set! new-cont (_field0 k))
+                               (_field2-set! new-cont (_field2 k))))
+                           (run #f (_field2 code)
+                                new-stack))))))))
 
              ;; calling a primitive
              (if (< code 0) 
@@ -270,10 +271,10 @@
                (case code
                  ((-12) ;; (apply-values consumer v*)
                   (let* ((v*       (_car stack)) (stack (_cdr stack))
-                         (consumer (_car stack)) (stack (_cdr stack))
-                         (trampoline0 (_rib consumer 0 0))
-                         ;; 0 = jump/call-op
-                         (trampoline (_rib 0 trampoline0 next)))
+                                                 (consumer (_car stack)) (stack (_cdr stack))
+                                                 (trampoline0 (_rib consumer 0 0))
+                                                 ;; 0 = jump/call-op
+                                                 (trampoline (_rib 0 trampoline0 next)))
                     (cond
                       ((and (_rib? v*) (eqv? values-type (_field2 v*)))
                        (let loop ((n 0)
@@ -286,7 +287,7 @@
                                  (_cons (_car cur) stack)))))
                       (else ;; standard apply
                         (run 1 trampoline (_cons v* stack))))))
-                 
+
                  (else 
                    ;; Calling external primitive
                    (let* ((id (- 0 code 12 1))
@@ -294,10 +295,10 @@
                           (stack (proc vals stack)))
                      (run #f
                           (if (_rib? next) ;; non-tail call?
-                              next
-                              (let ((cont (get-cont stack)))
-                               (_field1-set! stack (_field0 cont))
-                               (_field2 cont)))
+                            next
+                            (let ((cont (get-cont stack)))
+                              (_field1-set! stack (_field0 cont))
+                              (_field2 cont)))
                           stack))))
 
                ;; calling std primitive
@@ -315,7 +316,7 @@
               (_cons (get-var stack opnd) stack)))
 
         ((3) ;; const
-         (let ((v (encode-constant opnd intern!)))
+         (let ((v (encode-constant opnd)))
            (run #f next (_cons v stack))))
 
         ((4) ;; if
@@ -340,7 +341,7 @@
       (vector 'arg2 (lambda (y x) x) 2 1) 
       (vector 'close (lambda (vals stack)
                        (let* ((x (_car stack)) (stack (_cdr stack)))
-                        (_cons (_rib (_field0 x) stack procedure-type) stack)))
+                         (_cons (_rib (_field0 x) stack procedure-type) stack)))
               #f #f)
       (vector 'rib? (lambda (x) (boolean (_rib? x))) 1 1)
 
@@ -364,10 +365,10 @@
                                            (cur _nil)
                                            (stack stack))
                                   (if (= n 0)
-                                      (_cons (_rib cur 0 values-type) stack)
-                                      (loop (- n 1) 
-                                            (_cons (_car stack) cur) 
-                                            (_cdr stack)))))))
+                                    (_cons (_rib cur 0 values-type) stack)
+                                    (loop (- n 1) 
+                                          (_cons (_car stack) cur) 
+                                          (_cdr stack)))))))
               #f #f)
       (vector 'list->values (lambda (vals stack)
                               (_cons (_rib (_car stack) 0 values-type)
@@ -387,7 +388,7 @@
                                 (unless (_symbol? sym)
                                   (error "Symbol required" sym))
                                 (_wrap-string (symbol->string (_field1 sym)))) 1 1)))
-  
+
   (define raw-primitives (vector-append local-primitives (heapext-ops)))
 
   ;; Enter primitives
@@ -416,23 +417,23 @@
                 (vector-append raw-primitives ext)))
 
   (let ((offset (+ -12 -1)))
-   (let loop ((idx 0))
-    (unless (= (vector-length external-names) idx)
-      (let* ((name (vector-ref external-names idx))
-             (id (- offset idx)))
-        (set-var "unused" name (_rib id _nil procedure-type)))
-      (loop (+ idx 1)))))
+    (let loop ((idx 0))
+      (unless (= (vector-length external-names) idx)
+        (let* ((name (vector-ref external-names idx))
+               (id (- offset idx)))
+          (set-var "unused" name (_rib id _nil procedure-type)))
+        (loop (+ idx 1)))))
 
   (hashtable-set! globals '_eof-object _eof-object)
 
   ;; Start
-  
+
   (run #f ;; No values
        (_field2 (_field0 code)) ;; instruction stream of main procedure
        (_rib 0 0 (_rib 6 0 0))) ;; primordial continuation = halt
   (when (eq? not-yet output-result)
     (done-cb #t globals))
-   ) 
+  ) 
 
 
 )
