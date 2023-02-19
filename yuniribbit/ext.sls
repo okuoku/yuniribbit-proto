@@ -211,6 +211,14 @@
       (vector 'string->number string->number #t 1)
       ;list->string
       (vector 'list->string list->string 1 1)
+      ;<
+      (vector '< < 2 1)
+      ;+
+      (vector '+ + #t 1)
+      ;-
+      (vector '- - #t 1)
+      ;*
+      (vector '* * #t 1)
       ;$fixnum?
       (vector '$fixnum? $fixnum? 1 1)
       ;$flonum?
