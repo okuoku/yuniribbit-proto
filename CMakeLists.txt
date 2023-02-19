@@ -21,6 +21,7 @@ set(testsrcs
     ${tests}/scheme/stx0.sps
     ${tests}/scheme/strings0.sps
     ${tests}/scheme/values0.sps
+    ${tests}/scheme/values1.sps
     ${tests}/scheme/values2.sps
     ${tests}/scheme/values3.sps
     ${tests}/lib/hashtables0.sps
@@ -39,7 +40,6 @@ set(negativetestsrcs
     ${tests}/scheme/exp0.sps # ???
     ${tests}/scheme/exp1.sps # make-parameter
     ${tests}/scheme/exp2.sps # make-parameter
-    ${tests}/scheme/values1.sps # let-values
     ${tests}/lib/lighteval0.sps # ???
     ${tests}/lib/miniread0.sps # read
     ${tests}/lib/yuniio1.sps # eof-object, read
