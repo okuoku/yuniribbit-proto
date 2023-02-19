@@ -403,7 +403,6 @@
       (vector '+ + #t 1)
       (vector '- - #t 1)
       (vector '* * #t 1)
-      (vector 'quotient quotient 2 1)
       (vector 'exit (prim1/term (lambda (x) 
                                   (set! output-result x)
                                   (done-cb output-result globals))) #f #f)
