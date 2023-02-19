@@ -154,17 +154,23 @@
       (set! ext-library-initialized #t))
 
     (vector
+      ;; Char 
       (vector 'char? char? 1 1)
       (vector 'char->integer char->integer 1 1)
       (vector 'integer->char integer->char 1 1)
-      (vector 'file-exists? file-exists? 1 1)
-      (vector 'delete-file delete-file 1 1)
-      (vector 'string->utf8 string->utf8 #t 1)
+
+      ;; String constructors
       (vector 'utf8->string utf8->string #t 1)
       (vector 'vector->string vector->string #t 1)
-      (vector 'number->string $$number->string #t 1)
-      (vector 'string->number string->number #t 1)
       (vector 'list->string list->string 1 1)
+      ;; Writer
+      (vector 'number->string $$number->string #t 1)
+      ;; Reader
+      (vector 'string->number string->number #t 1)
+      ;; String conversion
+      (vector 'string->utf8 string->utf8 #t 1)
+
+      ;; Math
       (vector '< < #t 1)
       (vector '+ + #t 1)
       (vector '- - #t 1)
@@ -215,6 +221,10 @@
       (vector '$fl-sqrt sqrt #t 1)
       (vector '$fl-floor/ $fl-floor/ #t 1)
       (vector '$fl-truncate/ $fl-truncate/ #t 1)
+
+      ;; Files
+      (vector 'file-exists? file-exists? 1 1)
+      (vector 'delete-file delete-file 1 1)
       (vector 'filehandle-open/input filehandle-open/input 1 1)
       (vector 'filehandle-open/output filehandle-open/output 1 1)
       (vector 'filehandle-close filehandle-close 1 1)
