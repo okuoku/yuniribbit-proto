@@ -605,9 +605,6 @@
         (set-var "unused" name (_rib id _nil procedure-type)))
       (loop (+ idx 1)))))
 
-  (hashtable-set! globals 'false _false)
-  (hashtable-set! globals 'true _true)
-  (hashtable-set! globals 'nil _nil)
   (hashtable-set! globals '_eof-object _eof-object)
 
   ;; Start
