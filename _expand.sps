@@ -45,6 +45,7 @@
 (define (merge-output fe)
   (define outseq '())
   (define progsym (yunife-get-libsym fe #t))
+  (define readersym (yunife-get-libsym fe '(rvm reader-runtime)))
   (define loaded corelibs)
   (define (code libsym) (yunife-get-library-code fe libsym))
   (define (macro libsym) (yunife-get-library-macro fe libsym))
@@ -63,10 +64,15 @@
       (process libsym libname)))
 
   (define (process libsym libname)
+    (define (imp-fixup imports)
+      (if (eq? #t libname)
+          (append imports '((rvm reader-runtime)))
+          imports))
     ;(write (list 'PROCESS: libsym)) (newline)
     (let* ((seq (code libsym))
            (mac #f) ;; FIXME: Implement it
-           (imports (or (yunife-get-library-imports fe libsym) '()))
+           (imports 
+             (imp-fixup (or (yunife-get-library-imports fe libsym) '())))
            (exports (yunife-get-library-exports fe libsym))
            (import* (map (lambda (libname) (yunife-get-libsym fe libname))
                          imports)))
@@ -75,6 +81,7 @@
                          outseq))
       (addloaded! libsym)))
 
+  (process readersym '(rvm reader-runtime))
   (process progsym #t)
   (reverse outseq))
 
@@ -103,6 +110,7 @@
 (for-each (lambda (e) (yunife-add-path! fe e)) libpath)
 
 ;; Load source
+(yunife-loadlib! fe '(rvm reader-runtime))
 (yunife-load! fe source)
 
 ;; Emit expanded code (in binary)

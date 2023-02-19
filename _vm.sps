@@ -22,6 +22,7 @@
     (consume-args)))
 
 (define libht (make-symbol-hashtable)) ;; libsym => alist
+(define miniread #f)
 
 ;; Library processing
 ;; #(libname libsym imports exports seq mac)
@@ -37,10 +38,19 @@
       ;(write (list 'EXPORTS: (map car alist))) (newline)
       (hashtable-set! libht
                       (vector-ref v 1)
-                      alist))))
+                      alist)))
+  ;; Special handling for %r7c-read/mini
+  (let ((c (hashtable-ref ht '%r7c-read/mini #f)))
+   (when c
+     (write (list 'READ-CAPTURED: (vector-ref v 0))) (newline)
+     (set! miniread c))))
 
 (define none (list 0))
 (define (importlib! ht htdebug v)
+  (when miniread
+    ;; Inject reader
+    (hashtable-set! ht 'read miniread)
+    (hashtable-set! htdebug 'read 'NEVERLAND))
   (let ((imports (vector-ref v 2)))
    (for-each (lambda (libsym) 
                (for-each (lambda (e)
