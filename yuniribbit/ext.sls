@@ -212,7 +212,7 @@
       ;list->string
       (vector 'list->string list->string 1 1)
       ;<
-      (vector '< < 2 1)
+      (vector '< < #t 1)
       ;+
       (vector '+ + #t 1)
       ;-
