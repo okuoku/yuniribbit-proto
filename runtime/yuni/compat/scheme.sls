@@ -137,7 +137,7 @@
            (rvm numeric inexact) ; = (r7c-numeric std inexact)
            (rvm numeric misc) ; = (r7c-numeric std misc)
            ;(r7c-report binding-construct define-values)
-           ;(r7c-report binding-construct let-values)
+           (r7c-report binding-construct let-values)
            (r7c-report conditional case)
            (r7c-report conditional unless)
            ;(r7c-report conditional when) ;; NOT Exists..?

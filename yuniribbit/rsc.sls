@@ -272,7 +272,7 @@
                                 (cons (expand-body (cddr expr))
                                       '())))))
 
-                 ((eqv? first 'let)
+                 ((or (eqv? first 'let) (eqv? first '$let/core))
                   (let ((x (cadr expr)))
                     (if (symbol? x) ;; named let?
                         (expand-expr
