@@ -386,7 +386,7 @@
       (vector 'symbol->string (lambda (sym)
                                 (unless (_symbol? sym)
                                   (error "Symbol required" sym))
-                                (_wrap-string (symbol->string (_field0 sym)))) 1 1)))
+                                (_wrap-string (symbol->string (_field1 sym)))) 1 1)))
   
   (define raw-primitives (vector-append local-primitives (heapext-ops)))
 
