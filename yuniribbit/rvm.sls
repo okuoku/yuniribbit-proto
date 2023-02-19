@@ -422,9 +422,6 @@
       (vector 'list->values (lambda (vals stack)
                               (_cons (_rib (_car stack) 0 values-type)
                                      (_cdr stack))) #f #f)
-      (vector 'char? (lambda (c) (boolean (char? c))) 1 1)
-      (vector 'char->integer char->integer 1 1)
-      (vector 'integer->char integer->char 1 1)
       (vector 'vec-copy (lambda (vec start end)
                           (cond
                             ((_bytevector? vec)

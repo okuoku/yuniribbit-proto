@@ -189,6 +189,12 @@
       (set! ext-library-initialized #t))
 
     (vector
+      ;char?
+      (vector 'char? char? 1 1)
+      ;char->integer 
+      (vector 'char->integer char->integer 1 1)
+      ;integer->char
+      (vector 'integer->char integer->char 1 1)
       ;file-exists?
       (vector 'file-exists? file-exists? 1 1)
       ;delete-file
