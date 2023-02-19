@@ -23,8 +23,6 @@
         ($$number->string num 10)
         (number->string num (car radix?))))
 
-  (define ($fixnum? x) (and (exact? x) (integer? x)))
-
   (define ($fx/ a b) (exact (/ a b)))
   (define ($fx-expt a b) (exact (expt a b)))
   (define $fx-floor/ (pexact2 floor/))
@@ -155,7 +153,6 @@
 
     (vector
       ;; Char 
-      (vector 'char? char? 1 1)
       (vector 'char->integer char->integer 1 1)
       (vector 'integer->char integer->char 1 1)
 
@@ -175,8 +172,6 @@
       (vector '+ + #t 1)
       (vector '- - #t 1)
       (vector '* * #t 1)
-      (vector '$fixnum? $fixnum? 1 1)
-      (vector '$flonum? inexact? 1 1)
       (vector '$fx= = #t 1)
       (vector '$fx<= <= #t 1)
       (vector '$fx>= >= #t 1)

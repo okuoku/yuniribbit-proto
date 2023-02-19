@@ -148,8 +148,27 @@
   (define (ht-size ht) 
     (hashtable-size (_field0 ht)))
 
+  (define (%char? c)
+    (if (char? c) _true _false))
+
+  (define ($fixnum? x)
+    (if (and (exact? x) (integer? x))
+        _true
+        _false))
+
+  (define ($flonum? x)
+    (if (inexact? x)
+        _true
+        _false))
+
   (define (heapext-ops)
     (vector
+      ;; Primitive Type checks (not expressed with ribs)
+      (vector 'char? %char? 1 1)
+      (vector '$fixnum? $fixnum? 1 1)
+      (vector '$flonum? $flonum? 1 1)
+
+      ;; Vectors
       (vector 'vec-copy vec-copy 3 1)
       (vector 'vec-copy! vec-copy! 5 1)
       (vector 'vec-ref vec-ref 2 1)
@@ -158,6 +177,8 @@
       (vector 'vec-length vec-length 1 1)
       (vector 'vec-fill! vec-fill! 4 1)
       (vector 'vec= vec= 2 1)
+
+      ;; Hashtables
       (vector 'ht-new ht-new 1 1)
       (vector 'hashtable-set! ht-set! 3 1)
       (vector 'hashtable-entries ht-entries 1 1)
