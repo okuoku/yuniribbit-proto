@@ -2,6 +2,7 @@
   (export apply)
   (import (rsc-core-syntax)
           (r7c core error)
+          (r7c heap listloop)
           (rvm-primitives))
 
   (define (apply f . param)
@@ -11,7 +12,7 @@
         ((pair? param)
          (if (pair? (cdr cur))
              (loop (cons (car cur) acc) (cdr cur))
-             (apply-values f (list->values (append (reverse acc) (car cur))))))
+             (apply-values f (list->values ($append (reverse acc) (car cur))))))
         (else
           (error "apply: Invalid argument")))))
 
