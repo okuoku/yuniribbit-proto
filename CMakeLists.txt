@@ -12,6 +12,9 @@ set(testsrcs
     ${tests}/scheme/core0.sps
     ${tests}/scheme/core1.sps
     ${tests}/scheme/core2.sps
+    ${tests}/scheme/exp0.sps
+    ${tests}/scheme/exp1.sps
+    ${tests}/scheme/exp2.sps
     ${tests}/scheme/vectors0.sps
     ${tests}/scheme/bytevectors0.sps
     ${tests}/scheme/inexact0.sps
@@ -38,9 +41,6 @@ set(negativetestsrcs
     # Run phase
     ${tests}/scheme/inexact3.sps # SIBR0013
     ${tests}/scheme/qq0.sps # ???
-    ${tests}/scheme/exp0.sps # ???
-    ${tests}/scheme/exp1.sps # make-parameter
-    ${tests}/scheme/exp2.sps # make-parameter
     ${tests}/lib/lighteval0.sps # ???
     ${tests}/lib/miniread0.sps # multi-datum read
 

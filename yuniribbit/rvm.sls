@@ -281,6 +281,7 @@
                                                  (trampoline0 (_rib consumer 0 0))
                                                  ;; 0 = jump/call-op
                                                  (trampoline (_rib 0 trampoline0 next)))
+                    ;(write (list 'APV: v*)) (newline)
                     (cond
                       ((and (_rib? v*) (eqv? values-type (_field2 v*)))
                        (let loop ((n 0)
@@ -379,7 +380,7 @@
       (vector 'list->values (lambda (vals stack)
                               (_cons (_rib (_car stack) 0 values-type)
                                      (_cdr stack))) #f #f)
-      (vector 'error (primn (lambda x
+      (vector '$error/core (primn (lambda x
                               (error "Error" x))) #f #f)
       (vector 'string->symbol (lambda (str)
                                 (unless (_string? str)

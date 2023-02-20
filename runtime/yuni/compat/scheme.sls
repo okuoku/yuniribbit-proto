@@ -142,12 +142,10 @@
            (r7c-report conditional unless)
            ;(r7c-report conditional when) ;; NOT Exists..?
            ;(r7c-report misc case-lambda)
-           ;(r7c-report misc do)
-           ;(r7c-report misc guard)
+           (r7c-report misc do)
+           (r7c-report misc guard)
            ;(r7c-report misc lazy)
-           ;(r7c-report misc parameterize)
-           
-           )
+           (r7c-report misc parameterize))
          
 ;; Tentative
 
