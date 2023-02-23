@@ -42,13 +42,42 @@
     (rsc-core-syntax/primitives)
     (rvm-primitives)))
 
+(define (filter-macro libsym alist)
+  (define (filter-defmacro src)
+    (if (pair? src)
+        (let ((nam (car src))
+              (frm (cdr src)))
+          (unless (eq? nam 'define-macro)
+            (error "unrecognized macro" src))
+          (cons 'define frm))
+        src))
+  (define (filt1 mac) 
+    (let ((sym (car mac))
+          (libname (cadr mac))
+          (code+source (cddr mac)))
+      (list libname sym 
+            (if code+source
+                (filter-defmacro (cdr code+source))
+                #f))))
+  (let loop ((acc '())
+             (q alist))
+    (if (null? q)
+        acc
+        (let ((m (filt1 (car q))))
+         (if (eq? libsym (car m))
+             (loop (cons (cdr m) acc) (cdr q))
+             (loop acc (cdr q)))))))
+
 (define (merge-output fe)
   (define outseq '())
   (define progsym (yunife-get-libsym fe #t))
   (define readersym (yunife-get-libsym fe '(rvm reader-runtime)))
   (define loaded corelibs)
   (define (code libsym) (yunife-get-library-code fe libsym))
-  (define (macro libsym) (yunife-get-library-macro fe libsym))
+  (define (macro libsym) (filter-macro libsym
+                                       (yunife-get-library-macro fe libsym)))
+  (define (macname mac) (map car mac))
+  (define (maccode mac) (map cadr mac))
   (define (addloaded! libsym)
     ;(write (list 'ADD: libname)) (newline)
     (set! loaded (append loaded (list libsym))))
@@ -70,14 +99,15 @@
           imports))
     ;(write (list 'PROCESS: libsym)) (newline)
     (let* ((seq (code libsym))
-           (mac #f) ;; FIXME: Implement it
+           (mac (macro libsym))
            (imports 
              (imp-fixup (or (yunife-get-library-imports fe libsym) '())))
            (exports (yunife-get-library-exports fe libsym))
            (import* (map (lambda (libname) (yunife-get-libsym fe libname))
                          imports)))
       (for-each loadlib! import* imports)
-      (set! outseq (cons (vector libname libsym import* exports seq mac) 
+      (set! outseq (cons (vector libname libsym import* exports seq 
+                                 (macname mac) (maccode mac)) 
                          outseq))
       (addloaded! libsym)))
 

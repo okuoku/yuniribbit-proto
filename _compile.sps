@@ -34,13 +34,16 @@
           (import* (vector-ref v 2))
           (exports (vector-ref v 3))
           (seq (vector-ref v 4))
-          (mac (vector-ref v 5)))
-      (let ((c (compile-program seq)))
+          (macname* (vector-ref v 5))
+          (maccode (vector-ref v 6)))
+      (let ((c (compile-program seq))
+            (m (compile-program maccode)))
        (vector
          libname libsym import*
          exports
          c
-         mac))))
+         macname*
+         m))))
   (map proc1 x))
 
 (consume-args)
