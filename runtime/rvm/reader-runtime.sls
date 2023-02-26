@@ -63,7 +63,8 @@
 
   (define (%r7c-eval/yuni expr)
     (define prog `((import (yuni scheme)) ($vm-exit 2 ,expr)))
-    (make-lighteval-fe)
+    (unless lighteval-fe
+      (make-lighteval-fe))
     (yunife-load-sexp-list! lighteval-fe prog)
     (let* ((progsym (yunife-get-libsym lighteval-fe #t))
            (expanded (yunife-get-library-code lighteval-fe progsym))
