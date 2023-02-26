@@ -30,6 +30,7 @@ set(testsrcs
     ${tests}/scheme/values3.sps
     ${tests}/lib/hashtables0.sps
     ${tests}/lib/hashtables1.sps
+    ${tests}/lib/lighteval0.sps
     ${tests}/lib/miniread0.sps
     ${tests}/lib/minitest0.sps
     ${tests}/lib/yuniio0.sps
@@ -42,7 +43,6 @@ set(negativetestsrcs
     # Run phase
     ${tests}/scheme/inexact3.sps # SIBR0013
     ${tests}/scheme/qq0.sps # ???
-    ${tests}/lib/lighteval0.sps # ???
 
     # Expand phase
     ${tests}/app/basic/app.sps # lib ?

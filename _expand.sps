@@ -106,7 +106,7 @@
            (import* (map (lambda (libname) (yunife-get-libsym fe libname))
                          imports)))
       (for-each loadlib! import* imports)
-      (set! outseq (cons (vector libname libsym import* exports seq 
+      (set! outseq (cons (vector libname libsym import* imports exports seq 
                                  (macname mac) (maccode mac)) 
                          outseq))
       (addloaded! libsym)))

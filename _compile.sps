@@ -32,14 +32,16 @@
     (let ((libname (vector-ref v 0))
           (libsym (vector-ref v 1))
           (import* (vector-ref v 2))
-          (exports (vector-ref v 3))
-          (seq (vector-ref v 4))
-          (macname* (vector-ref v 5))
-          (maccode (vector-ref v 6)))
+          (imports (vector-ref v 3))
+          (exports (vector-ref v 4))
+          (seq (vector-ref v 5))
+          (macname* (vector-ref v 6))
+          (maccode (vector-ref v 7)))
       (let ((c (compile-program seq))
             (m (compile-program maccode)))
        (vector
          libname libsym import*
+         imports
          exports
          c
          macname*

@@ -23,6 +23,8 @@ execute_process(
     -LIBPATH ${CMAKE_CURRENT_LIST_DIR}
     _expand.sps
     -libpath ${CMAKE_CURRENT_LIST_DIR}/runtime
+    -libpath ${CMAKE_CURRENT_LIST_DIR}
+    -libpath ${ROOT}/external
     ${libargs}
     -source
     ${input}

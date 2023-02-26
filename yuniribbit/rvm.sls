@@ -2,6 +2,7 @@
          (export rvm)
          (import (yuni scheme)
                  (yuni hashtables)
+                 (yuniribbit ext)
                  (yuniribbit heapext)
                  (yuniribbit heapcore))
 
@@ -163,12 +164,13 @@
 
 (define none (list "NOT-FOUND!!"))
 
-(define (rvm code globals ext done-cb) ;; => output-mode result globals
+(define (rvm code globals vmlocal done-cb) ;; => output-mode result globals
   ;; output-mode: 0 = terminate, 1 = exit-called, 2 = eval-term
   (define not-yet (cons 0 0))
   (define output-result not-yet)
   (define externals #f)
   (define external-names #f)
+  (define ext (ext-functions-vector))
 
   (define (intern! sym)
     (unless (symbol? sym)
@@ -302,13 +304,15 @@
                    (let* ((id (- 0 code 12 1))
                           (proc (vector-ref externals id))
                           (stack (proc vals stack)))
-                     (run #f
-                          (if (_rib? next) ;; non-tail call?
-                            next
-                            (let ((cont (get-cont stack)))
-                              (_field1-set! stack (_field0 cont))
-                              (_field2 cont)))
-                          stack))))
+                     (if stack
+                         (run #f
+                              (if (_rib? next) ;; non-tail call?
+                                  next
+                                  (let ((cont (get-cont stack)))
+                                   (_field1-set! stack (_field0 cont))
+                                   (_field2 cont)))
+                              stack)
+                         'done))))
 
                ;; calling std primitive
                (error "Illegal primitive code" code)))))
@@ -397,7 +401,7 @@
                                   (error "Symbol required" sym))
                                 (_wrap-string (symbol->string (_field1 sym)))) 1 1)))
 
-  (define raw-primitives (vector-append local-primitives (heapext-ops)))
+  (define raw-primitives (vector-append local-primitives vmlocal (heapext-ops)))
 
   ;; Enter primitives
 
