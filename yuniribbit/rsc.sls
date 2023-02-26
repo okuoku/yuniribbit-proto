@@ -3,6 +3,7 @@
          (import (yuni scheme))
 
          
+(define (compile-program program)
 ;;;----------------------------------------------------------------------------
 
 (define jump/call-op 0)
@@ -38,7 +39,7 @@
 
 (define procedure-type 1)
 
-(define (instance? o type) (and (rib? o) (eqv? (field2 o) type)))
+(define (instance? o type) (and (xrib? o) (eqv? (xfield2 o) type)))
 
 (define (rib field0 field1 field2)
   (let ((r (make-vector 3)))
@@ -47,13 +48,10 @@
    (vector-set! r 2 field2)
    r))
 
-(define (rib? o) (vector? o))
-(define (field0 o) (vector-ref o 0))
-(define (field1 o) (vector-ref o 1))
-(define (field2 o) (vector-ref o 2))
-(define (field0-set! o x) (vector-set! o 0 x) o)
-(define (field1-set! o x) (vector-set! o 1 x) o)
-(define (field2-set! o x) (vector-set! o 2 x) o)
+(define (xrib? o) (vector? o))
+(define (xfield0 o) (vector-ref o 0))
+(define (xfield1 o) (vector-ref o 1))
+(define (xfield2 o) (vector-ref o 2))
 
 (define (make-procedure code env) (rib code env procedure-type))
 
@@ -63,10 +61,10 @@
 
 (define (make-ctx cte) (rib cte 0 0))
 
-(define (ctx-cte ctx) (field0 ctx))
+(define (ctx-cte ctx) (xfield0 ctx))
 
 (define (ctx-cte-set ctx x)
-  (rib x (field1 ctx) (field2 ctx)))
+  (rib x (xfield1 ctx) (xfield2 ctx)))
 
 (define (comp ctx expr cont)
 
@@ -151,11 +149,11 @@
   (rib set-op v (gen-noop cont)))
 
 (define (gen-noop cont)
-  (if (and (rib? cont) ;; starts with pop?
-           (eqv? (field0 cont) jump/call-op) ;; call?
-           (eqv? (field1 cont) 'arg1)
-           (rib? (field2 cont)))
-      (field2 cont) ;; remove pop
+  (if (and (xrib? cont) ;; starts with pop?
+           (eqv? (xfield0 cont) jump/call-op) ;; call?
+           (eqv? (xfield1 cont) 'arg1)
+           (xrib? (xfield2 cont)))
+      (xfield2 cont) ;; remove pop
       (rib const-op 0 cont))) ;; add dummy value for set!
 
 (define (comp-bind ctx vars exprs body cont)
@@ -229,7 +227,7 @@
                 tail))
      '())))
 
-(define (compile-program program)
+(define (compile-program0 program)
   (let* ((exprs program)
          (proc (comp-exprs (if (pair? exprs) exprs (cons #f '())))))
     proc))
@@ -459,4 +457,5 @@
             (expand-list (cdr exprs)))
       '()))
 
+(compile-program0 program))
 )
