@@ -94,7 +94,7 @@
                     (rvm (vector-ref v 4)
                          globals
                          (ext-functions-vector)
-                         (lambda (x globals)
+                         (lambda (mode x globals)
                            (cond
                              (in-program?
                                (write (list 'EXIT: x)) (newline)

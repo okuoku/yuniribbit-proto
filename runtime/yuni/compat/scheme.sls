@@ -153,6 +153,9 @@
   (vector->string
     (apply vector-map proc (map string->vector args))))
 
+(define (exit obj)
+  ($vm-exit 1 obj))
+
 
 #|
 ;; FIXME: This doesn't work as expected

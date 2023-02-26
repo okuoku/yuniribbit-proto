@@ -24,17 +24,18 @@
     (let* ((x (_car stack)) (stack (_cdr stack)))
       (_cons (f x) stack))))
 
-(define (prim1/term f)
-  (lambda (vals stack)
-    (let* ((x (_car stack)) (stack (_cdr stack)))
-     (f x)
-     #f)))
-
 (define (prim2 f)
   (lambda (vals stack)
     (let* ((y (_car stack)) (stack (_cdr stack))
            (x (_car stack)) (stack (_cdr stack)))
       (_cons (f x y) stack))))
+
+(define (prim2/term f)
+  (lambda (vals stack)
+    (let* ((y (_car stack)) (stack (_cdr stack))
+           (x (_car stack)) (stack (_cdr stack)))
+      (f x y)
+      #f)))
 
 (define (prim3 f)
   (lambda (vals stack)
@@ -162,7 +163,8 @@
 
 (define none (list "NOT-FOUND!!"))
 
-(define (rvm code globals ext done-cb)
+(define (rvm code globals ext done-cb) ;; => output-mode result globals
+  ;; output-mode: 0 = terminate, 1 = exit-called, 2 = eval-term
   (define not-yet (cons 0 0))
   (define output-result not-yet)
   (define externals #f)
@@ -362,9 +364,10 @@
                       (when (or (symbol? x) (symbol? y))
                         (error "raw symbol" x y))
                       (boolean (eqv? x y))) 2 1)
-      (vector 'exit (prim1/term (lambda (x) 
-                                  (set! output-result x)
-                                  (done-cb output-result globals))) #f #f)
+      (vector '$vm-exit (prim2/term (lambda (mode x) 
+                                      (set! output-result x)
+                                      (done-cb mode output-result globals)))
+              #f #f)
       (vector 'values (lambda (vals stack)
                         (cond
                           ((= vals 1) stack)
@@ -437,7 +440,7 @@
        (_field2 (_field0 code)) ;; instruction stream of main procedure
        (_rib 0 0 (_rib 6 0 0))) ;; primordial continuation = halt
   (when (eq? not-yet output-result)
-    (done-cb #t globals))
+    (done-cb 0 #t globals))
   ) 
 
 
