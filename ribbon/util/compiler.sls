@@ -31,8 +31,6 @@
   (define (ensure-ribbon-compiler-fe!)
     (unless ribbon-compiler-fe
       (set! ribbon-compiler-fe (make-yunife))
-      (yunife-add-alias-map! ribbon-compiler-fe
-                             'yunivm 'yunife-yunivm)
       (yunife-add-primitives! ribbon-compiler-fe
                               '(rsc-core-syntax/primitives)
                               (map (lambda (e) (cons e #f))
