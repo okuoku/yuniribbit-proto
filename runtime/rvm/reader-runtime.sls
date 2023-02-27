@@ -39,7 +39,7 @@
 
   (define (lighteval-cache-loader libname sym cb)
     ;(write (list 'CACHELOADER libname sym)) (newline)
-    ;; cb = ^[result imports exports macro*]
+    ;; cb = ^[result imports exports code macro*]
     (let ((libinfobv ($$lookup-cached-libinfo sym))) 
      (let* ((p (open-input-bytevector libinfobv))
             (libinfo (drypack-get p)))
@@ -50,7 +50,7 @@
          (let ((mac* (map (lambda (name)
                             (cons name ($$lookup-cached-macro name)))
                           macname*)))
-           (cb #t imports exports mac*))))))
+           (cb #t imports exports #f mac*))))))
 
   (define (make-lighteval-fe)
     (set! lighteval-fe (make-yunife))
