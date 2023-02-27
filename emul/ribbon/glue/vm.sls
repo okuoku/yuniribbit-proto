@@ -70,15 +70,14 @@
      ;(write (list 'LOOKUP: sym '=> (hashtable-ref libinfoht sym #f))) (newline)
      (hashtable-ref libinfoht sym #f)))
 
-  (define (lookup-cached-macro/encoded vals stack)
-    (let ((arg (_car stack)))
-     (unless (_symbol? arg)
-       (error "invalid argument" arg))
-     (let ((name (_field1 arg)))
+  (define (lookup-cached-macro/encoded arg)
+    (unless (_symbol? arg)
+      (error "invalid argument" arg))
+    (let ((name (_field1 arg)))
       (let ((obj (hashtable-ref macroht name #f)))
-       (unless obj
-         (error "Could not refer macro" name))
-       (_cons obj (_cdr stack))))))
+        (unless obj
+          (error "Could not refer macro" name))
+        obj)))
 
   (define (lookup-cached-code/encoded arg)
     (unless (_symbol? arg)
@@ -97,7 +96,7 @@
       (vector '$$runvm runvm/encoded 1 1)
       (vector '$$lookup-cached-libinfo lookup-cached-libinfo/encoded 1 1)
       (vector '$$lookup-cached-code lookup-cached-code/encoded 1 1)
-      (vector '$$lookup-cached-macro lookup-cached-macro/encoded #f #f)))
+      (vector '$$lookup-cached-macro lookup-cached-macro/encoded 1 1)))
 
   ;; Library processing
   ;; #(libname libsym import* imports exports seq macname mac)
