@@ -3,6 +3,7 @@
     ;; Initialize
     ribbon-compiler-set-cache-handler!
     ribbon-compiler-add-libpath!
+    ribbon-compiler-reset!
     ;; Activation (call this before any actual expansion)
     ribbon-compiler-activate!
     ;; Expand/Compile
@@ -35,9 +36,7 @@
       (yunife-add-primitives! ribbon-compiler-fe
                               '(rsc-core-syntax/primitives)
                               (map (lambda (e) (cons e #f))
-                                   '(let let* letrec define and or cond)))
-
-      ))
+                                   '(let let* letrec define and or cond)))))
 
   (define (ribbon-compiler-set-cache-handler! proc)
     (ensure-ribbon-compiler-fe!)
@@ -54,6 +53,9 @@
   (define (ribbon-compiler-compile-program pth)
     (yunife-load! ribbon-compiler-fe pth))
 
+  (define (ribbon-compiler-reset!)
+    (set! ribbon-compiler-fe #f)
+    (ensure-ribbon-compiler-fe!))
 
   (define (ribbon-compiler-output-bundle compiled?)
     (define fe ribbon-compiler-fe)

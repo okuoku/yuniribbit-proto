@@ -1,5 +1,11 @@
 (library (ribbon util interp)
-  (export run-interp)
+  (export run-interp
+          interp-reset!
+          interp-set-libpath!
+          interp-activate!
+          interp-gen-bundle
+          interp-run
+          )
   (import (yuni scheme)
           (yuni io drypack)
           (ribbon glue vm)
@@ -27,20 +33,25 @@
          (else ;; not-found
            (cb #f #f #f #f #f))))))
 
+  (define (interp-reset!)
+    (ribbon-compiler-reset!)
+    (ribbon-compiler-set-cache-handler! interp-cache-handler))
+
+  (define (interp-set-libpath! libpath*)
+    (for-each ribbon-compiler-add-libpath! libpath*))
+
+  (define (interp-activate!)
+    (ribbon-compiler-activate!))
   
-  (define (run-interp libpath* prog)
-    (ribbon-compiler-set-cache-handler! interp-cache-handler)
-    (for-each ribbon-compiler-add-libpath! libpath*)
-    (ribbon-compiler-activate!)
-
-    (ribbon-compiler-compile-program prog)
-
-    (let ((seq (ribbon-compiler-output-bundle #t)))
-     (cache-runtime! seq)
-     (for-each (lambda (v)
-                 (let ((code (vector-ref v 5)))
-                  ($$runvm/interp code)))
-               seq))
+  (define (interp-gen-bundle path)
+    (ribbon-compiler-compile-program path)
+    (ribbon-compiler-output-bundle #t))
+  
+  (define (interp-run bundle)
+    (for-each (lambda (v)
+                (let ((code (vector-ref v 5)))
+                 ($$runvm/interp code)))
+              bundle)
     (exit 0))
   
   )

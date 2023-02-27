@@ -70,7 +70,16 @@
 
 (cond
   (source
-    (run-interp libpath source))
+    (interp-reset!)
+    (interp-set-libpath! libpath)
+    (interp-activate!)
+
+    (let ((bundle (interp-gen-bundle source)))
+     (cache-runtime! bundle)
+     ;; Reset globals
+     (set! globals (make-symbol-hashtable))
+     (interp-reset!)
+     (interp-run bundle)))
   (else
     (error "no op")))
 
