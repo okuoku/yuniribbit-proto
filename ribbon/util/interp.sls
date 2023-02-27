@@ -1,9 +1,9 @@
-(library (ribbon applet interp)
+(library (ribbon util interp)
   (export run-interp)
   (import (yuni scheme)
           (yuni io drypack)
           (ribbon glue vm)
-          (ribbon applet compiler))
+          (ribbon util compiler))
 
   
   ;; FIXME: move this into separate library

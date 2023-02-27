@@ -1,4 +1,4 @@
-(library (ribbon applet compiler)
+(library (ribbon util compiler)
   (export
     ;; Initialize
     ribbon-compiler-set-cache-handler!

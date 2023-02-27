@@ -4,7 +4,7 @@
         (yuniribbit heapcore)
         (yuniribbit rvm)
         (ribbon glue vm)
-        (ribbon applet interp)
+        (ribbon util interp)
         (yuni hashtables))
 
 (define libpath '())
