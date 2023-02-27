@@ -157,12 +157,9 @@
   ($vm-exit 1 obj))
 
 
-#|
-;; FIXME: This doesn't work as expected
 (define (read . x) 
   ;; Actually defined in (rvm reader-runtime)
   (apply %r7c-read/mini x))
-|#
 
 
          )
