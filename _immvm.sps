@@ -3,7 +3,7 @@
         (yuniribbit ext)
         (yuniribbit heapcore)
         (yuniribbit rvm)
-        (ribbon glue vm)
+        (ribbon vmglue vm)
         (ribbon util interp)
         (yuni hashtables))
 

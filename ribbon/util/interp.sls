@@ -8,7 +8,7 @@
           )
   (import (yuni scheme)
           (yuni io drypack)
-          (ribbon glue vm)
+          (ribbon vmglue vm)
           (ribbon util compiler))
 
   
