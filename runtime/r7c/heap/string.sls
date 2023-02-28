@@ -33,9 +33,10 @@
           (list->string (reverse acc))
           (loop (cons (string-ref str idx) acc) ($fx+ 1 idx)))))
 
-  ;; FIXME: implement more seriously
   (define (string-append . queue)
-    (list->string (apply append (map string->list queue))))
+    (if (null? queue)
+        ""
+        (apply vec-append queue)))
 
   (define (string-set! str o c)
     (require-str str)

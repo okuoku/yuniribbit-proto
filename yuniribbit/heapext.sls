@@ -118,6 +118,19 @@
       (else
         (error "Unimpl: vec="))))
 
+  (define (vec-append x . y)
+    (cond
+      ((_string? x)
+       (_wrap-string
+         (apply string-append (_field0 x)
+                (map (lambda (e)
+                       (unless (_string? e)
+                         (error "String required" e))
+                       (_field0 e))
+                     y))))
+      (else
+        (error "Unimpl: vec-append"))))
+
   (define (ht-new x) 
     (_wrap-hashtable ((case x
                         ((0) make-eq-hashtable)
@@ -176,6 +189,7 @@
       (vector 'vec-new vec-new 2 1)
       (vector 'vec-length vec-length 1 1)
       (vector 'vec-fill! vec-fill! 4 1)
+      (vector 'vec-append vec-append #t 1)
       (vector 'vec= vec= 2 1)
 
       ;; Hashtables
