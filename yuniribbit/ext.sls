@@ -172,6 +172,7 @@
       (vector '+ + #t 1)
       (vector '- - #t 1)
       (vector '* * #t 1)
+      (vector '= = #t 1)
       (vector '$fx= = #t 1)
       (vector '$fx<= <= #t 1)
       (vector '$fx>= >= #t 1)

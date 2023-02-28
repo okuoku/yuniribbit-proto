@@ -17,6 +17,7 @@
                  (r7c syntax let)
                  (r7c-numeric std division))
 
+#|
 (define (=/itr b queue)
   (if (null? queue) 
     #t
@@ -36,7 +37,6 @@
          (=/itr b queue))))
 
 
-#|
 (define (</itr b queue)
   (if (null? queue) 
     #t
