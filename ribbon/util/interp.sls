@@ -1,6 +1,5 @@
 (library (ribbon util interp)
-  (export run-interp
-          interp-reset!
+  (export interp-reset!
           interp-set-libpath!
           interp-activate!
           interp-gen-bundle

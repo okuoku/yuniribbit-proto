@@ -40,18 +40,6 @@
 
     ;; Library processing
     ;; #(libname libsym import* imports exports seq macname mac)
-    (define (putlib! ht v)
-      ;; FIXME: Export everything for now
-      ;;        Consider turn it anonymous where required...
-      (let ((exports (vector->list (hashtable-keys ht))))
-       (let ((alist (map (lambda (sym)
-                           (cons sym
-                                 (hashtable-ref ht sym #f)))
-                         exports))
-             (libsym (vector-ref v 1)))
-         ;(write (list 'EXPORTS: (map car alist))) (newline)
-         (hashtable-set! libht libsym alist))))
-
 
     (define (cachebundle1 v)
       (when (vector-ref v 4)  ;; non-virtual lib?
