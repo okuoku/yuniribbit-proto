@@ -25,13 +25,8 @@
     (require-str str)
     (vec-ref str o))
 
-  ;; FIXME: implement more seriously
   (define (substring str start end)
-    (let loop ((acc '())
-               (idx start))
-      (if (= idx end)
-          (list->string (reverse acc))
-          (loop (cons (string-ref str idx) acc) ($fx+ 1 idx)))))
+    (vec-subvec str start end))
 
   (define (string-append . queue)
     (if (null? queue)

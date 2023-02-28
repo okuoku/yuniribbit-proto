@@ -131,6 +131,13 @@
       (else
         (error "Unimpl: vec-append"))))
 
+  (define (vec-subvec vec start end)
+    (cond
+      ((_string? vec)
+       (_wrap-string (substring (_field0 vec) start end)))
+      (else
+        (error "Unimpl: vec-subvec"))))
+
   (define (ht-new x) 
     (_wrap-hashtable ((case x
                         ((0) make-eq-hashtable)
@@ -190,6 +197,7 @@
       (vector 'vec-length vec-length 1 1)
       (vector 'vec-fill! vec-fill! 4 1)
       (vector 'vec-append vec-append #t 1)
+      (vector 'vec-subvec vec-subvec 3 1)
       (vector 'vec= vec= 2 1)
 
       ;; Hashtables
