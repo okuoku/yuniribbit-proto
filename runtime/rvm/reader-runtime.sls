@@ -35,42 +35,60 @@
 
   ;; lighteval runtime
 
+  (define (lighteval-transcode/in obj)
+    (let ((p (open-input-bytevector obj)))
+     (drypack-get p)))
+
+  (define (lighteval-transcode/out obj)
+    (let ((p (open-output-bytevector)))
+     (drypack-put p obj)
+     (get-output-bytevector p)))
+
   (define lighteval-fe #f)
 
   (define (lighteval-cache-loader libname sym cb)
     ;(write (list 'CACHELOADER libname sym)) (newline)
     ;; cb = ^[result imports exports code macro*]
-    (let ((libinfobv ($$lookup-cached-libinfo sym))) 
-     (let* ((p (open-input-bytevector libinfobv))
-            (libinfo (drypack-get p)))
-       ;(write (list 'LOOKUP: libinfo)) (newline)
-       (let ((imports (car libinfo))
-             (exports (cadr libinfo))
-             (macname* (caddr libinfo)))
-         (let ((mac* (map (lambda (name)
-                            (cons name ($$lookup-cached-macro name)))
-                          macname*)))
-           (cb #t imports exports #f mac*))))))
+    (let ((libinfo (lighteval-transcode/in
+                     ($$lookup-cached-libinfo sym)))) 
+      (if libinfo
+          ;(write (list 'LOOKUP: libinfo)) (newline)
+          (let ((imports (car libinfo))
+                (exports (cadr libinfo))
+                (macname* (caddr libinfo)))
+            (let ((mac* (map (lambda (name)
+                               (cons name ($$lookup-cached-macro name)))
+                             macname*)))
+              (cb #t imports exports #f mac*)))
+          (cb #f #f #f #f #f))))
 
   (define (make-lighteval-fe)
     (set! lighteval-fe (make-yunife))
-    (yunife-register-cache-loader! lighteval-fe lighteval-cache-loader))
-
-  (define (lighteval-transcode obj)
-    (define p (open-output-bytevector))
-    (drypack-put p obj)
-    (get-output-bytevector p))
+    (let ((current-mode ($$macro-runtime-mode 0)))
+     (cond
+       ((= current-mode 1) ;; use VM side runtime
+        (yunife-register-cache-loader! lighteval-fe lighteval-cache-loader) )
+       (else ;; bootstrap
+         'do-nothing))))
 
   (define (%r7c-eval/yuni expr)
-    (define prog `((import (yuni scheme)) ($vm-exit 2 ,expr)))
-    (unless lighteval-fe
-      (make-lighteval-fe))
-    (yunife-load-sexp-list! lighteval-fe prog)
-    (let* ((progsym (yunife-get-libsym lighteval-fe #t))
-           (expanded (yunife-get-library-code lighteval-fe progsym))
-           (code (compile-program expanded)))
-      ;(write (list 'RUNNING: expanded)) (newline)
-      ($$runvm (lighteval-transcode code))))
+    (let* ((current-mode ($$macro-runtime-mode 0))
+           (prog (if (= current-mode 0)
+                     `(($vm-exit 2 ,expr))
+                     `((import (yuni scheme)) ($vm-exit 2 ,expr)))))
+      (cond 
+        ((= current-mode 0) ;; don't use yunife
+         (let ((code (compile-program prog)))
+          ($$runvm (lighteval-transcode/out code))))
+        (else
+          (unless lighteval-fe
+            (make-lighteval-fe))
+          (yunife-load-sexp-list! lighteval-fe prog)
+          (let* ((progsym (yunife-get-libsym lighteval-fe #t))
+                 (expanded (yunife-get-library-code lighteval-fe progsym))
+                 (code (compile-program expanded)))
+            ;(write (list 'RUNNING: expanded)) (newline)
+            ($$runvm (lighteval-transcode/out code)))))))
 
 )
 

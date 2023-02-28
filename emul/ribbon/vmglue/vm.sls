@@ -9,6 +9,7 @@
     cache-runtime!
     ;; For emulator
     vm-library
+    boot-library
     set-interp!
     )
 
@@ -81,9 +82,18 @@
     (let ((name (_field1 arg)))
      (libcache-lookup-global rtcache name)))
 
+  (define (macro-runtime-mode/0 bogus) 0)
+  (define (macro-runtime-mode/1 bogus) 1)
+
+  (define (boot-library)
+    (vector
+      (vector '$$runvm runvm/encoded 1 1)
+      (vector '$$macro-runtime-mode macro-runtime-mode/0 1 1)))
+
   (define (vm-library)
     (vector
       (vector '$$runvm runvm/encoded 1 1)
+      (vector '$$macro-runtime-mode macro-runtime-mode/1 1 1)
       (vector '$$lookup-cached-libinfo lookup-cached-libinfo/encoded 1 1)
       (vector '$$lookup-cached-code lookup-cached-code/encoded 1 1)
       (vector '$$lookup-cached-macro lookup-cached-macro/encoded 1 1)))

@@ -10,6 +10,8 @@
 (define libpath '())
 (define source #f)
 (define outbin #f)
+(define bootstrapmode #f)
+(define myself #f)
 (define args (command-line))
 
 (define (consume-args)
@@ -41,6 +43,7 @@
 
 (define globals (make-symbol-hashtable))
 (define vmlib (vm-library))
+(define bootlib (boot-library))
 (define none (list 'none))
 
 (define (vmlookup sym)
@@ -51,7 +54,10 @@
 
 (define (runvm code)
   (define output #f)
-  (rvm code globals vmlib
+  (rvm code globals 
+       (if bootstrapmode
+           bootlib
+           vmlib)
        (lambda (mode x globals)
          (cond
            ((= mode 1)
