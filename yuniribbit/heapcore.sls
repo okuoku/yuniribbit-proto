@@ -33,6 +33,13 @@
     _wrap-vector
     _wrap-simple-struct
     _wrap-hashtable
+    _unwrap-string
+    _unwrap-bytevector
+    _unwrap-vector
+    _unwrap-simple-struct
+    _unwrap-hashtable
+    _unwrap-symbol/value
+    _unwrap-symbol/name
     )
   (import (yuni scheme))
 
@@ -75,6 +82,7 @@
   (define _vector? (instance? vector-type))
   (define _bytevector? (instance? bytevector-type))
   (define _simple-struct? (instance? simple-struct-type))
+  (define _hashtable? (instance? hashtable-type))
   (define _procedure? (instance? procedure-type))
 
 
@@ -87,6 +95,13 @@
   (define (_wrap-vector x) (_rib x 0 vector-type))
   (define (_wrap-simple-struct x) (_rib x 0 simple-struct-type))
   (define (_wrap-hashtable x type) (_rib x type hashtable-type))
+  (define (_unwrap-string x) (_field0 x))
+  (define (_unwrap-bytevector x) (_field0 x))
+  (define (_unwrap-vector x) (_field0 x))
+  (define (_unwrap-simple-struct x) (_field0 x))
+  (define (_unwrap-hashtable x) (_field0 x))
+  (define (_unwrap-symbol/value x) (_field0 x))
+  (define (_unwrap-symbol/name x) (_field1 x))
 
 
   ;; Singleton object instances

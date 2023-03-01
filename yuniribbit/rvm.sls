@@ -77,22 +77,22 @@
 (define (import-string x) 
   (unless (_string? x)
     (error "tried to import non-string" x))
-  (_field0 x))
+  (_unwrap-string x))
 
 (define (import-value x)
   (cond
     ((number? x) x)
     ((char? x) x)
-    ((_symbol? x) (_field0 x))
+    ((_symbol? x) (_unwrap-symbol/name x))
     ((symbol? x) x)
     ((_procedure? x) x)
     ((_string? x) (import-string x))
     ((eqv? _nil x) '())
     ((eqv? _true x) #t)
     ((eqv? _false x) #f)
-    ((_bytevector? x) (_field0 x))
-    ((_vector? x) (_field0 x))
-    ((_pair? x) (cons (import-value (_field0 x)) (import-value (_field1 x))))
+    ((_bytevector? x) (_unwrap-bytevector x))
+    ((_vector? x) (_unwrap-vector x))
+    ((_pair? x) (cons (import-value (_car x)) (import-value (_cdr x))))
     (else
       (error "Unsupported primitive import" x))))
 
@@ -200,7 +200,7 @@
 
   (define (get-var stack opnd)
     ;(when (symbol? opnd) (write (list 'GET-VAR: opnd)) (newline))
-    (_field0 
+    (_field0  ;; _unwrap-symbol/value
       (cond
         ((_rib? opnd) 
          opnd)
@@ -392,14 +392,14 @@
       (vector 'string->symbol (lambda (str)
                                 (unless (_string? str)
                                   (error "String required" str))
-                                (let* ((name (_field0 str))
+                                (let* ((name (_unwrap-string str))
                                        (namesym (string->symbol name)))
                                   (intern! namesym))) 1 1)
       (vector 'procedure? (lambda (x) (if (_procedure? x) _true _false)) 1 1)
       (vector 'symbol->string (lambda (sym)
                                 (unless (_symbol? sym)
                                   (error "Symbol required" sym))
-                                (_wrap-string (symbol->string (_field1 sym)))) 1 1)))
+                                (_wrap-string (symbol->string (_unwrap-symbol/name sym)))) 1 1)))
 
   (define raw-primitives (vector-append local-primitives vmlocal (heapext-ops)))
 

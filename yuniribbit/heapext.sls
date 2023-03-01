@@ -14,7 +14,7 @@
   (define (vec-copy vec start end) 
     (cond
       ((_bytevector? vec)
-       (let* ((bv (_field0 vec))
+       (let* ((bv (_unwrap-bytevector vec))
               (newbv (if (= start -1)
                          (bytevector-copy bv)
                          (bytevector-copy bv start end))))
@@ -25,16 +25,16 @@
   (define (vec-copy! tgt loc src start end) 
     (cond
       ((_string? tgt)
-       (string-copy! (_field0 tgt) loc (_field0 src)
+       (string-copy! (_unwrap-string tgt) loc (_unwrap-string src)
                      start end)
        _true)
       ((_vector? tgt)
-       (vector-copy! (_field0 tgt) loc (_field0 src)
+       (vector-copy! (_unwrap-vector tgt) loc (_unwrap-vector src)
                      start end)
        _true)
       ((_bytevector? tgt)
-       (let ((bv1 (_field0 tgt))
-             (bv2 (_field0 src)))
+       (let ((bv1 (_unwrap-bytevector tgt))
+             (bv2 (_unwrap-bytevector src)))
          (bytevector-copy! bv1 loc bv2 start end))
        _true)
       (else
@@ -43,28 +43,26 @@
   (define (vec-ref vec idx) 
     (cond
       ((_string? vec)
-       (string-ref (_field0 vec) idx))
+       (string-ref (_unwrap-string vec) idx))
       ((_vector? vec)
-       (vector-ref (_field0 vec) idx))
+       (vector-ref (_unwrap-vector vec) idx))
       ((_simple-struct? vec)
-       (vector-ref (_field0 vec) (+ 1 idx)))
+       (vector-ref (_unwrap-simple-struct vec) (+ 1 idx)))
       ((_bytevector? vec)
-       (let ((bv (_field0 vec)))
-        (bytevector-u8-ref bv idx)))
+       (bytevector-u8-ref (_unwrap-bytevector vec) idx))
       (else
         (error "Unimpl: vec-ref"))))
 
   (define (vec-set! vec idx obj) 
     (cond
       ((_vector? vec)
-       (vector-set! (_field0 vec) idx obj)
+       (vector-set! (_unwrap-vector vec) idx obj)
        _true)
       ((_simple-struct? vec)
-       (vector-set! (_field0 vec) (+ 1 idx) obj)
+       (vector-set! (_unwrap-simple-struct vec) (+ 1 idx) obj)
        _true)
       ((_bytevector? vec)
-       (let ((bv (_field0 vec)))
-        (bytevector-u8-set! bv idx obj))
+       (bytevector-u8-set! (_unwrap-bytevector vec) idx obj)
        _true)
       (else
         (error "Unimpl: vec-set!"))))
@@ -85,34 +83,32 @@
   (define (vec-length vec) 
     (cond
       ((_string? vec)
-       (string-length (_field0 vec)))
+       (string-length (_unwrap-string vec)))
       ((_vector? vec)
-       (vector-length (_field0 vec)))
+       (vector-length (_unwrap-vector vec)))
       ((_bytevector? vec)
-       (let ((bv (_field0 vec)))
-        (bytevector-length bv)))
+       (bytevector-length (_unwrap-bytevector vec)))
       (else
         (error "Unimpl: vec-length"))))
 
   (define (vec-fill! vec obj from to) 
     (cond
       ((_string? vec)
-       (string-fill! (_field0 vec) obj from to)
+       (string-fill! (_unwrap-string vec) obj from to)
        _true)
       ((_vector? vec)
-       (vector-fill! (_field0 vec) obj from to)
+       (vector-fill! (_unwrap-vector vec) obj from to)
        _true)
       ((_bytevector? vec)
-       (let ((bv (_field0 vec)))
-        (bytevector-fill! bv obj from to)
-        _true))
+       (bytevector-fill! (_unwrap-bytevector vec) obj from to)
+        _true)
       (else
         (error "Unimpl: vec-fill!"))))
 
   (define (vec= x y) 
     (cond
       ((_string? x)
-       (if (string=? (_field0 x) (_field0 y))
+       (if (string=? (_unwrap-string x) (_unwrap-string y))
            _true
            _false))
       (else
@@ -122,11 +118,11 @@
     (cond
       ((_string? x)
        (_wrap-string
-         (apply string-append (_field0 x)
+         (apply string-append (_unwrap-string x)
                 (map (lambda (e)
                        (unless (_string? e)
                          (error "String required" e))
-                       (_field0 e))
+                       (_unwrap-string e))
                      y))))
       (else
         (error "Unimpl: vec-append"))))
@@ -134,7 +130,7 @@
   (define (vec-subvec vec start end)
     (cond
       ((_string? vec)
-       (_wrap-string (substring (_field0 vec) start end)))
+       (_wrap-string (substring (_unwrap-string vec) start end)))
       (else
         (error "Unimpl: vec-subvec"))))
 
@@ -144,29 +140,30 @@
                         ((1) make-eqv-hashtable)
                         ((2) make-integer-hashtable)
                         ((3) make-string-hashtable)
-                        ((4) make-symbol-hashtable)))
+                        ((4) make-symbol-hashtable)
+                        (else (error "Unknown hashtable type" x))))
                      x))
 
   (define (ht-set! ht key obj) 
-    (hashtable-set! (_field0 ht) key obj)
+    (hashtable-set! (_unwrap-hashtable ht) key obj)
     _true)
 
   (define (ht-entries ht) 
     (call-with-values
-      (lambda () (hashtable-entries (_field0 ht)))
+      (lambda () (hashtable-entries (_unwrap-hashtable ht)))
       (lambda (keys vals)
         (let ((v1 (_wrap-vector keys))
               (v2 (_wrap-vector vals)))
           (_rib (_cons v1 (_cons v2 _nil)) 0 values-type)))))
 
   (define (ht-ref ht key default) 
-    (hashtable-ref (_field0 ht) key default))
+    (hashtable-ref (_unwrap-hashtable ht) key default))
 
   (define (ht-keys ht) 
-    (_wrap-vector (hashtable-keys (_field0 ht))))
+    (_wrap-vector (hashtable-keys (_unwrap-hashtable ht))))
 
   (define (ht-size ht) 
-    (hashtable-size (_field0 ht)))
+    (hashtable-size (_unwrap-hashtable ht)))
 
   (define (%char? c)
     (if (char? c) _true _false))
