@@ -39,8 +39,6 @@
 
 (define procedure-type 1)
 
-(define (instance? o type) (and (xrib? o) (eqv? (xfield2 o) type)))
-
 (define (rib field0 field1 field2)
   (let ((r (make-vector 3)))
    (vector-set! r 0 field0)
@@ -48,10 +46,10 @@
    (vector-set! r 2 field2)
    r))
 
-(define (xrib? o) (vector? o))
-(define (xfield0 o) (vector-ref o 0))
-(define (xfield1 o) (vector-ref o 1))
-(define (xfield2 o) (vector-ref o 2))
+(define (rib? o) (vector? o))
+(define (field0 o) (vector-ref o 0))
+(define (field1 o) (vector-ref o 1))
+(define (field2 o) (vector-ref o 2))
 
 (define (make-procedure code env) (rib code env procedure-type))
 
@@ -61,10 +59,10 @@
 
 (define (make-ctx cte) (rib cte 0 0))
 
-(define (ctx-cte ctx) (xfield0 ctx))
+(define (ctx-cte ctx) (field0 ctx))
 
 (define (ctx-cte-set ctx x)
-  (rib x (xfield1 ctx) (xfield2 ctx)))
+  (rib x (field1 ctx) (field2 ctx)))
 
 (define (comp ctx expr cont)
 
@@ -149,11 +147,11 @@
   (rib set-op v (gen-noop cont)))
 
 (define (gen-noop cont)
-  (if (and (xrib? cont) ;; starts with pop?
-           (eqv? (xfield0 cont) jump/call-op) ;; call?
-           (eqv? (xfield1 cont) 'arg1)
-           (xrib? (xfield2 cont)))
-      (xfield2 cont) ;; remove pop
+  (if (and (rib? cont) ;; starts with pop?
+           (eqv? (field0 cont) jump/call-op) ;; call?
+           (eqv? (field1 cont) 'arg1)
+           (rib? (field2 cont)))
+      (field2 cont) ;; remove pop
       (rib const-op 0 cont))) ;; add dummy value for set!
 
 (define (comp-bind ctx vars exprs body cont)
