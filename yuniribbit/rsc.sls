@@ -1,6 +1,7 @@
 (library (yuniribbit rsc)
          (export compile-program)
-         (import (yuni scheme))
+         (import (yuni scheme)
+                 (ribbon vmglue compiler))
 
          
 (define (compile-program program)
@@ -39,18 +40,6 @@
 
 (define procedure-type 1)
 
-(define (rib field0 field1 field2)
-  (let ((r (make-vector 3)))
-   (vector-set! r 0 field0)
-   (vector-set! r 1 field1)
-   (vector-set! r 2 field2)
-   r))
-
-(define (rib? o) (vector? o))
-(define (field0 o) (vector-ref o 0))
-(define (field1 o) (vector-ref o 1))
-(define (field2 o) (vector-ref o 2))
-
 (define (make-procedure code env) (rib code env procedure-type))
 
 ;;;----------------------------------------------------------------------------
@@ -74,7 +63,7 @@
          (let ((first (car expr)))
 
            (cond ((eqv? first 'quote)
-                  (rib const-op (cadr expr) cont))
+                  (rib const-op (vminject (cadr expr)) cont))
 
                  ((eqv? first 'set!)
                   (let ((var (cadr expr)))
@@ -135,7 +124,7 @@
 
         (else
          ;; self-evaluating
-         (rib const-op expr cont))))
+         (rib const-op (vminject expr) cont))))
 
 (define (gen-call argc v cont)
   (let ((g (if (eqv? cont tail)

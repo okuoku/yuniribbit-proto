@@ -399,7 +399,9 @@
       (vector 'symbol->string (lambda (sym)
                                 (unless (_symbol? sym)
                                   (error "Symbol required" sym))
-                                (_wrap-string (symbol->string (_unwrap-symbol/name sym)))) 1 1)))
+                                (_wrap-string (symbol->string (_unwrap-symbol/name sym)))) 1 1)
+      (vector 'vminject import-value 1 1)
+      (vector 'vmfetch encode-constant 1 1)))
 
   (define raw-primitives (vector-append local-primitives vmlocal (heapext-ops)))
 

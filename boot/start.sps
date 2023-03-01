@@ -32,7 +32,7 @@
    (let ((bv (get-output-bytevector p)))
     bv)))
 
-(define dummy (encodehost #f))
+(define dummy #f)
 
 (define ($$lookup-cached-libinfo obj) 
   (write (list 'CACHEQUERY: obj)) (newline)

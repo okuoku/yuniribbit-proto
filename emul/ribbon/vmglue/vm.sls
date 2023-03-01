@@ -29,7 +29,7 @@
       bv)))
 
   (define ($$lookup-cached-libinfo sym)
-    (encodehost #f))
+    #f)
   (define ($$lookup-cached-macro name)
     (error "UNIMPL"))
   (define ($$lookup-cached-code sym)
@@ -56,27 +56,24 @@
       (_wrap-bytevector bv))))
 
   ;; Runtime caching
-  (define rtcache (make-libcache call-interp call-lookup encodevm))
+  (define rtcache (make-libcache call-interp call-lookup #f))
 
-  (define (runvm/encoded arg)
-    (unless (_bytevector? arg)
-      (error "Invalid argument" arg))
-    (let ((bv (_unwrap-bytevector arg)))
-     (interp (decodehost bv))))
+  (define (runvm arg)
+    (interp arg))
 
-  (define (lookup-cached-libinfo/encoded arg)
+  (define (lookup-cached-libinfo arg)
     (unless (_symbol? arg)
       (error "Invalid argument" arg))
     (let ((sym (_unwrap-symbol/name arg)))
      (libcache-lookup-libinfo rtcache sym)))
 
-  (define (lookup-cached-macro/encoded arg)
+  (define (lookup-cached-macro arg)
     (unless (_symbol? arg)
       (error "invalid argument" arg))
     (let ((name (_unwrap-symbol/name arg)))
      (libcache-lookup-macro rtcache name)))
 
-  (define (lookup-cached-code/encoded arg)
+  (define (lookup-cached-code arg)
     (unless (_symbol? arg)
       (error "invalid argument" arg))
     (let ((name (_unwrap-symbol/name arg)))
@@ -87,16 +84,16 @@
 
   (define (boot-library)
     (vector
-      (vector '$$runvm runvm/encoded 1 1)
+      (vector '$$runvm runvm 1 1)
       (vector '$$macro-runtime-mode macro-runtime-mode/0 1 1)))
 
   (define (vm-library)
     (vector
-      (vector '$$runvm runvm/encoded 1 1)
+      (vector '$$runvm runvm 1 1)
       (vector '$$macro-runtime-mode macro-runtime-mode/1 1 1)
-      (vector '$$lookup-cached-libinfo lookup-cached-libinfo/encoded 1 1)
-      (vector '$$lookup-cached-code lookup-cached-code/encoded 1 1)
-      (vector '$$lookup-cached-macro lookup-cached-macro/encoded 1 1)))
+      (vector '$$lookup-cached-libinfo lookup-cached-libinfo 1 1)
+      (vector '$$lookup-cached-code lookup-cached-code 1 1)
+      (vector '$$lookup-cached-macro lookup-cached-macro 1 1)))
 
   (define (cache-runtime! seq)
     ;; Scan over runtime and register for lookup table

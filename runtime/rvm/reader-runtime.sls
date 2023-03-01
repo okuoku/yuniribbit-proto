@@ -9,7 +9,6 @@
           (yuni miniread reader)
           ;; eval
           (yunife core)
-          (yuni io drypack)
           (yuniribbit rsc))
 
   (define (%r7c-read/mini . p)
@@ -35,22 +34,12 @@
 
   ;; lighteval runtime
 
-  (define (lighteval-transcode/in obj)
-    (let ((p (open-input-bytevector obj)))
-     (drypack-get p)))
-
-  (define (lighteval-transcode/out obj)
-    (let ((p (open-output-bytevector)))
-     (drypack-put p obj)
-     (get-output-bytevector p)))
-
   (define lighteval-fe #f)
 
   (define (lighteval-cache-loader libname sym cb)
     ;(write (list 'CACHELOADER libname sym)) (newline)
     ;; cb = ^[result imports exports code macro*]
-    (let ((libinfo (lighteval-transcode/in
-                     ($$lookup-cached-libinfo sym)))) 
+    (let ((libinfo (vmfetch ($$lookup-cached-libinfo sym)))) 
       (if libinfo
           ;(write (list 'LOOKUP: libinfo)) (newline)
           (let ((imports (car libinfo))
@@ -79,7 +68,7 @@
       (cond 
         ((= current-mode 0) ;; don't use yunife
          (let ((code (compile-program prog)))
-          ($$runvm (lighteval-transcode/out code))))
+          ($$runvm code)))
         (else
           (unless lighteval-fe
             (make-lighteval-fe))
@@ -88,7 +77,7 @@
                  (expanded (yunife-get-library-code lighteval-fe progsym))
                  (code (compile-program expanded)))
             ;(write (list 'RUNNING: expanded)) (newline)
-            ($$runvm (lighteval-transcode/out code)))))))
+            ($$runvm code))))))
 
 )
 

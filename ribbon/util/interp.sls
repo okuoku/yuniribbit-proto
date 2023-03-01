@@ -6,7 +6,6 @@
           interp-run
           )
   (import (yuni scheme)
-          (yuni io drypack)
           (ribbon vmglue vm)
           (ribbon util compiler))
 
@@ -15,22 +14,20 @@
   (define (interp-cache-handler libname sym cb)
     ;(write (list 'CACHELOADER libname sym)) (newline)
     ;; cb = ^[result imports exports code macro*]
-    (let ((libinfobv ($$lookup-cached-libinfo sym)))
-     (let* ((p (open-input-bytevector libinfobv))
-            (libinfo (drypack-get p)))
-       (cond
-         (libinfo
-           ;(write (list 'LOOKUP: libinfo)) (newline)
-           (let ((imports (car libinfo))
-                 (exports (cadr libinfo))
-                 (macname* (caddr libinfo)))
-             (let ((mac* (map (lambda (name)
-                                (cons name ($$lookup-cached-macro name)))
-                              macname*))
-                   (code ($$lookup-cached-code sym)))
-               (cb #t imports exports code mac*))))
-         (else ;; not-found
-           (cb #f #f #f #f #f))))))
+    (let ((libinfo ($$lookup-cached-libinfo sym)))
+      (cond
+        (libinfo
+          ;(write (list 'LOOKUP: libinfo)) (newline)
+          (let ((imports (car libinfo))
+                (exports (cadr libinfo))
+                (macname* (caddr libinfo)))
+            (let ((mac* (map (lambda (name)
+                               (cons name ($$lookup-cached-macro name)))
+                             macname*))
+                  (code ($$lookup-cached-code sym)))
+              (cb #t imports exports code mac*))))
+        (else ;; not-found
+          (cb #f #f #f #f #f)))))
 
   (define (interp-reset!)
     (ribbon-compiler-reset!)
