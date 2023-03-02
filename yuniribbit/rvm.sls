@@ -156,14 +156,31 @@
                 (cons (import-value (_car stack)) cur)
                 (_cdr stack))))))
 
-
-(define (bytevector-fill! bv b start end)
-  (let loop ((idx start))
-   (unless (= idx end)
-     (bytevector-u8-set! bv idx b)
-     (loop (+ idx 1)))))
-
 (define none (list "NOT-FOUND!!"))
+
+(define (vmfetchcode code) ;; Loop-aware object conversion, assumes rvm code
+  (define ht (make-eq-hashtable))
+  (define (resultrib key x y z)
+    (let ((r (rib x y z)))
+     (hashtable-set! ht key r)
+     r))
+  (define (convrib obj)
+    (let ((f0 (_field0 obj))
+          (f1 (_field1 obj))
+          (f2 (_field2 obj)))
+      (cond
+        ((= f0 6) ;; constobj
+         (resultrib obj f0 (encode-constant f1) (conv obj)))
+        (else
+          (resultrib obj f0 (conv f1) (conv f2))))))
+  (define (conv obj)
+    (cond
+      ((_rib? obj)
+       (or (hashtable-ref ht obj #f)
+           (convrib obj)))
+      (else 
+        (encode-constant obj))))
+  (conv code))
 
 (define (rvm code globals vmlocal done-cb) ;; => output-mode result globals
   ;; output-mode: 0 = terminate, 1 = exit-called, 2 = eval-term
@@ -194,6 +211,7 @@
       ((_procedure? opnd) opnd)
       ((vector? opnd) (_wrap-vector (vector-map encode-constant opnd)))
       ((symbol? opnd) (intern! opnd))
+      ((eof-object? opnd) _eof-object)
       (else 
         (error "Unknown constant" opnd)
         opnd)))
@@ -329,9 +347,8 @@
               next
               (_cons (get-var stack opnd) stack)))
 
-        ((3) ;; const
-         (let ((v (encode-constant opnd)))
-           (run #f next (_cons v stack))))
+        ((3) ;; const(lambda) ;; yuniribbit
+         (run #f next (_cons opnd stack)))
 
         ((4) ;; if
          (run #f
@@ -339,6 +356,9 @@
               (_cdr stack)))
         ((5) ;; enter (yuniribbit)
          (run opnd next stack))
+        ((6) ;; const(obj) ;; yuniribbit
+         (let ((v (encode-constant opnd)))
+          (run #f next (_cons v stack))))
         (else ;; halt
           #f))))
 
@@ -401,7 +421,9 @@
                                 (unless (_symbol? sym)
                                   (error "Symbol required" sym))
                                 (_wrap-string (symbol->string (_unwrap-symbol/name sym)))) 1 1)
+      ;; Should be no-op for non-scheme implementations
       (vector 'vminject import-value 1 1)
+      (vector 'vmfetchcode vmfetchcode 1 1)
       (vector 'vmfetch encode-constant 1 1)))
 
   (define raw-primitives (vector-append local-primitives vmlocal (heapext-ops)))
@@ -445,7 +467,7 @@
 
   (run #f ;; No values
        (_field2 (_field0 code)) ;; instruction stream of main procedure
-       (_rib 0 0 (_rib 6 0 0))) ;; primordial continuation = halt
+       (_rib 0 0 (_rib 7 0 0))) ;; primordial continuation = halt
   (when (eq? not-yet output-result)
     (done-cb 0 #t globals))
   ) 

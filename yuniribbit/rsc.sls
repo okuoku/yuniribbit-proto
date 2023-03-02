@@ -13,6 +13,7 @@
 (define const-op     3)
 (define if-op        4)
 (define enter-op     5) ;; yuniribbit
+(define constobj-op  6) ;; yuniribbit
 
 (define (encode-lambda-param params) ;; yuniribbit
   (let loop ((cur params)
@@ -63,7 +64,7 @@
          (let ((first (car expr)))
 
            (cond ((eqv? first 'quote)
-                  (rib const-op (vminject (cadr expr)) cont))
+                  (rib constobj-op (vminject (cadr expr)) cont))
 
                  ((eqv? first 'set!)
                   (let ((var (cadr expr)))
@@ -124,7 +125,7 @@
 
         (else
          ;; self-evaluating
-         (rib const-op (vminject expr) cont))))
+         (rib constobj-op (vminject expr) cont))))
 
 (define (gen-call argc v cont)
   (let ((g (if (eqv? cont tail)

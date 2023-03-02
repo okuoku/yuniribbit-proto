@@ -4,7 +4,7 @@
     $$lookup-cached-libinfo
     $$lookup-cached-code
     $$lookup-cached-macro
-    $$runvm/interp
+    $$runvm
     ;; FIXME
     cache-runtime!
     ;; For emulator
@@ -45,7 +45,7 @@
     (set! lookup vmlookup)
     (set! interp runvm))
 
-  (define ($$runvm/interp code)
+  (define ($$runvm code)
     (interp code))
 
   ;; VM library

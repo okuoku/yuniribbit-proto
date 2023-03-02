@@ -1,0 +1,12 @@
+(library (ribbon vmglue compiler)
+  (export rib rib? field0 field1 field2 vminject)
+  (import (yuni scheme)
+          (yuniribbit heapcore))
+
+  (define rib _rib)
+  (define rib? _rib?)
+  (define field0 _field0)
+  (define field1 _field1)
+  (define field2 _field2)
+  (define (vmfetchcode x) x)
+  (define (vminject x) x))

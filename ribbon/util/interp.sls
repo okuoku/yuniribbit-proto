@@ -46,7 +46,7 @@
   (define (interp-run bundle)
     (for-each (lambda (v)
                 (let ((code (vector-ref v 5)))
-                 ($$runvm/interp code)))
+                 ($$runvm code)))
               bundle)
     (exit 0))
   
