@@ -35,7 +35,6 @@
 (define dummy #f)
 
 (define ($$lookup-cached-libinfo obj) 
-  (write (list 'CACHEQUERY: obj)) (newline)
   dummy)
 
 ;(set-interp! fake-runvm fake-lookup)
@@ -46,7 +45,9 @@
 
 (write (list 'STARTING...)) (newline)
 
-(interp-gen-bundle source)
+(let ((bundle (interp-gen-bundle source)))
+ (write (list 'INTERP...)) (newline)
+ (interp-run bundle))
 
 (write (list 'DONE.)) (newline)
 
