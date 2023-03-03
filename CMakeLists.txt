@@ -73,8 +73,16 @@ set(negativetestsrcs
 foreach(f ${testsrcs})
     get_filename_component(nam ${f} NAME_WE)
 
-    add_test(NAME ${nam}
+    # Base(success)
+    add_test(NAME BASE-${nam}
         COMMAND ${CMAKE_COMMAND} 
+        -Dinput=${f}
+        -P ${CMAKE_CURRENT_LIST_DIR}/_testrun.cmake)
+
+    # interp(success)
+    add_test(NAME EMUL-${nam}
+        COMMAND ${CMAKE_COMMAND} 
+        -Dinterp=emul
         -Dinput=${f}
         -P ${CMAKE_CURRENT_LIST_DIR}/_testrun.cmake)
 endforeach()
@@ -82,10 +90,17 @@ endforeach()
 foreach(f ${negativetestsrcs})
     get_filename_component(nam ${f} NAME_WE)
 
-    add_test(NAME ${nam}
+
+    add_test(NAME BASE-${nam}
         COMMAND ${CMAKE_COMMAND} 
         -Dinput=${f}
         -P ${CMAKE_CURRENT_LIST_DIR}/_testrun.cmake)
-    set_tests_properties(${nam}
+    add_test(NAME EMUL-${nam}
+        COMMAND ${CMAKE_COMMAND} 
+        -Dinterp=emul
+        -Dinput=${f}
+        -P ${CMAKE_CURRENT_LIST_DIR}/_testrun.cmake)
+
+    set_tests_properties(BASE-${nam} EMUL-${nam}
         PROPERTIES WILL_FAIL TRUE)
 endforeach()

@@ -79,15 +79,35 @@
     (let ((name (_unwrap-symbol/name arg)))
      (libcache-lookup-global rtcache name)))
 
+  (define (lookup-cached-libinfo/encoded arg)
+    (define (conv obj)
+      (cond
+        ((eqv? #f obj) _false)
+        ((pair? obj) (_cons (conv (car obj)) (conv (cdr obj))))
+        ((null? obj) _nil)
+        ((symbol? obj) (_wrap-string (symbol->string obj)))
+        (else (error "Unknown object" obj))))
+
+    (let ((ifo (lookup-cached-libinfo arg)))
+     (conv ifo)))
+
   (define (macro-runtime-mode/0 bogus) 0)
   (define (macro-runtime-mode/1 bogus) 1)
 
-  (define (boot-library)
+  (define (boot-library args)
     (vector
       (vector '$$runvm runvm 1 1)
+      (vector '$$command-line (lambda (bogus) 
+                                (_wrap-vector
+                                  (list->vector
+                                    (map _wrap-string args)))) 1 1)
+      (vector '$$lookup-cached-libinfo/encoded 
+              lookup-cached-libinfo/encoded 1 1)
+      (vector '$$lookup-cached-code lookup-cached-code 1 1)
+      (vector '$$lookup-cached-macro lookup-cached-macro 1 1)  
       (vector '$$macro-runtime-mode macro-runtime-mode/0 1 1)))
 
-  (define (vm-library)
+  (define (vm-library args)
     (vector
       (vector '$$runvm runvm 1 1)
       (vector '$$macro-runtime-mode macro-runtime-mode/1 1 1)

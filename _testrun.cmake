@@ -10,9 +10,18 @@ endforeach()
 set(impl gauche)
 
 # Generate pass paths
-get_filename_component(nam ${input} NAME_WE)
-set(expanded ${nam}.expand.bin)
-set(compiled ${nam}.compiled.bin)
+if(interp)
+    set(restargs
+        -bootstrap
+        ${CMAKE_CURRENT_LIST_DIR}/boot/start.sps
+        --
+        ${input})
+else()
+    get_filename_component(nam ${input} NAME_WE)
+    set(expanded ${nam}.expand.bin)
+    set(compiled ${nam}.compiled.bin)
+    set(restargs -source ${input})
+endif()
 
 execute_process(
     COMMAND ${YUNIBUILD}/run-${impl}.sh
@@ -24,8 +33,7 @@ execute_process(
     -libpath ${CMAKE_CURRENT_LIST_DIR}
     -libpath ${ROOT}/external
     ${libargs}
-    -source
-    ${input}
+    ${restargs}
     RESULT_VARIABLE rr
     )
 

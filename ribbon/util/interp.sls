@@ -3,6 +3,7 @@
           interp-set-libpath!
           interp-activate!
           interp-gen-bundle
+          interp-gen-expanded
           interp-run
           )
   (import (yuni scheme)
@@ -22,7 +23,8 @@
                 (exports (cadr libinfo))
                 (macname* (caddr libinfo)))
             (let ((mac* (map (lambda (name)
-                               (cons name ($$lookup-cached-macro name)))
+                               (let ((macro ($$lookup-cached-macro name)))
+                                (cons name macro)))
                              macname*))
                   (code ($$lookup-cached-code sym)))
               (cb #t imports exports code mac*))))
@@ -42,6 +44,10 @@
   (define (interp-gen-bundle path)
     (ribbon-compiler-compile-program path)
     (ribbon-compiler-output-bundle #t))
+
+  (define (interp-gen-expanded path)
+    (ribbon-compiler-compile-program path)
+    (ribbon-compiler-output-bundle #f))
   
   (define (interp-run bundle)
     (for-each (lambda (v)

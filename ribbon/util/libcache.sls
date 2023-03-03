@@ -66,7 +66,6 @@
               (interp (vector-ref v 7))
               ;; Save VM closure object into host hashtable
               (for-each (lambda (sym)
-                          ;(write (list 'MACADD: sym)) (newline)
                           (hashtable-set! macroht sym (lookup sym)))
                         (vector-ref v 6)))))))
 

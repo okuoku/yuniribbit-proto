@@ -13,6 +13,7 @@
 (define bootstrapmode #f)
 (define myself #f)
 (define args (command-line))
+(define restargs '())
 
 (define (consume-args)
   (when (pair? args)
@@ -20,6 +21,13 @@
           (d (cdr args)))
       ;(write (list 'ARG: a)) (newline)
       (cond
+        ((string=? "-bootstrap" a)
+         (unless (pair? d)
+           (display "Error: -bootstrap requires source code\n")
+           (exit 1))
+         (set! source (car d))
+         (set! args (cdr d))
+         (set! bootstrapmode #t))
         ((string=? "-libpath" a)
          (unless (pair? d)
            (display "Error: -lib requires source directory\n")
@@ -38,26 +46,28 @@
            (exit 1))
          (set! outbin (car d))
          (set! args (cdr d)))
+        ((string=? "--" a)
+         (set! restargs d)
+         (set! args '()))
         (else (set! args d))))
     (consume-args)))
 
 (define globals (make-symbol-hashtable))
-(define vmlib (vm-library))
-(define bootlib (boot-library))
 (define none (list 'none))
 
 (define (vmlookup sym)
   (let ((obj (hashtable-ref globals sym none)))
    (when (eq? obj none)
      (error "Could not resolve symbol" sym))
-   obj))
+   ;; Return content of the symbol
+   (_field0 obj)))
 
 (define (runvm code)
   (define output #f)
   (rvm code globals 
        (if bootstrapmode
-           bootlib
-           vmlib)
+           (boot-library restargs)
+           (vm-library restargs))
        (lambda (mode x globals)
          (cond
            ((= mode 1)
