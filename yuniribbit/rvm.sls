@@ -92,7 +92,7 @@
     ((eqv? _false x) #f)
     ((eqv? _eof-object x) (eof-object))
     ((_bytevector? x) (_unwrap-bytevector x))
-    ((_vector? x) (_unwrap-vector x))
+    ((_vector? x) (vector-map import-value (_unwrap-vector x)))
     ((_pair? x) (cons (import-value (_car x)) (import-value (_cdr x))))
     (else
       (error "Unsupported primitive import" x))))
