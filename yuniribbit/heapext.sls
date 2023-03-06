@@ -13,43 +13,40 @@
 
   (define (vec-copy vec start end) 
     (cond
-      ((_bytevector? vec)
-       (let* ((bv (_unwrap-bytevector vec))
+      ((bytevector? vec)
+       (let* ((bv vec)
               (newbv (if (= start -1)
                          (bytevector-copy bv)
                          (bytevector-copy bv start end))))
-         (_wrap-bytevector newbv)))
+         newbv))
       (else
         (error "Unimpl: vec-copy" vec))))
 
   (define (vec-copy! tgt loc src start end) 
     (cond
-      ((_string? tgt)
-       (string-copy! (_unwrap-string tgt) loc (_unwrap-string src)
-                     start end)
+      ((string? tgt)
+       (string-copy! tgt loc src start end)
        _true)
       ((_vector? tgt)
        (vector-copy! (_unwrap-vector tgt) loc (_unwrap-vector src)
                      start end)
        _true)
-      ((_bytevector? tgt)
-       (let ((bv1 (_unwrap-bytevector tgt))
-             (bv2 (_unwrap-bytevector src)))
-         (bytevector-copy! bv1 loc bv2 start end))
+      ((bytevector? tgt)
+       (bytevector-copy! tgt loc src start end)
        _true)
       (else
         (error "Unimpl: vec-copy!"))))
 
   (define (vec-ref vec idx) 
     (cond
-      ((_string? vec)
-       (string-ref (_unwrap-string vec) idx))
+      ((string? vec)
+       (string-ref vec idx))
       ((_vector? vec)
        (vector-ref (_unwrap-vector vec) idx))
       ((_simple-struct? vec)
        (vector-ref (_unwrap-simple-struct vec) (+ 1 idx)))
-      ((_bytevector? vec)
-       (bytevector-u8-ref (_unwrap-bytevector vec) idx))
+      ((bytevector? vec)
+       (bytevector-u8-ref vec idx))
       (else
         (error "Unimpl: vec-ref"))))
 
@@ -61,8 +58,8 @@
       ((_simple-struct? vec)
        (vector-set! (_unwrap-simple-struct vec) (+ 1 idx) obj)
        _true)
-      ((_bytevector? vec)
-       (bytevector-u8-set! (_unwrap-bytevector vec) idx obj)
+      ((bytevector? vec)
+       (bytevector-u8-set! vec idx obj)
        _true)
       (else
         (error "Unimpl: vec-set!"))))
@@ -74,41 +71,41 @@
       ((= tag 9)
        (_wrap-simple-struct (make-vector (+ k 1))))
       ((= tag 3)
-       (_wrap-string (make-string k)))
+       (make-string k))
       ((= tag 8)
-       (_wrap-bytevector (make-bytevector k)))
+       (make-bytevector k))
       (else
         (error "Unimpl: vec-new" tag))))
 
   (define (vec-length vec) 
     (cond
-      ((_string? vec)
-       (string-length (_unwrap-string vec)))
+      ((string? vec)
+       (string-length vec))
       ((_vector? vec)
        (vector-length (_unwrap-vector vec)))
-      ((_bytevector? vec)
-       (bytevector-length (_unwrap-bytevector vec)))
+      ((bytevector? vec)
+       (bytevector-length vec))
       (else
         (error "Unimpl: vec-length"))))
 
   (define (vec-fill! vec obj from to) 
     (cond
-      ((_string? vec)
-       (string-fill! (_unwrap-string vec) obj from to)
+      ((string? vec)
+       (string-fill! vec obj from to)
        _true)
       ((_vector? vec)
        (vector-fill! (_unwrap-vector vec) obj from to)
        _true)
-      ((_bytevector? vec)
-       (bytevector-fill! (_unwrap-bytevector vec) obj from to)
+      ((bytevector? vec)
+       (bytevector-fill! vec obj from to)
         _true)
       (else
         (error "Unimpl: vec-fill!"))))
 
   (define (vec= x y) 
     (cond
-      ((_string? x)
-       (if (string=? (_unwrap-string x) (_unwrap-string y))
+      ((string? x)
+       (if (string=? x y)
            _true
            _false))
       (else
@@ -116,21 +113,20 @@
 
   (define (vec-append x . y)
     (cond
-      ((_string? x)
-       (_wrap-string
-         (apply string-append (_unwrap-string x)
-                (map (lambda (e)
-                       (unless (_string? e)
-                         (error "String required" e))
-                       (_unwrap-string e))
-                     y))))
+      ((string? x)
+       (apply string-append x
+              (map (lambda (e)
+                     (unless (string? e)
+                       (error "String required" e))
+                     e)
+                   y)))
       (else
         (error "Unimpl: vec-append"))))
 
   (define (vec-subvec vec start end)
     (cond
-      ((_string? vec)
-       (_wrap-string (substring (_unwrap-string vec) start end)))
+      ((string? vec)
+       (substring vec start end))
       (else
         (error "Unimpl: vec-subvec"))))
 
@@ -178,10 +174,21 @@
         _true
         _false))
 
+  (define (%string? x)
+    (if (string? x)
+        _true
+        _false))
+  (define (%bytevector? x)
+    (if (bytevector? x)
+        _true
+        _false))
+
   (define (heapext-ops)
     (vector
       ;; Primitive Type checks (not expressed with ribs)
       (vector 'char? %char? 1 1)
+      (vector 'string? %string? 1 1)
+      (vector 'bytevector? %bytevector? 1 1)
       (vector '$fixnum? $fixnum? 1 1)
       (vector '$flonum? $flonum? 1 1)
 

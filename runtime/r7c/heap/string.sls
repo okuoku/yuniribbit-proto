@@ -8,10 +8,6 @@
           (r7c heap pair)
           (rsc-core-syntax))
 
-  ;; string-type = 3
-  (define (string? str)
-    (and (rib? str) (eqv? 3 (field2 str))))
-
   (define (require-str str)
     (if (string? str)
         #t

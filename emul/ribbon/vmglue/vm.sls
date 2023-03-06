@@ -52,8 +52,7 @@
   (define (encodevm obj)
     (let ((p (open-output-bytevector)))
      (drypack-put p obj)
-     (let ((bv (get-output-bytevector p)))
-      (_wrap-bytevector bv))))
+     (get-output-bytevector p)))
 
   ;; Runtime caching
   (define rtcache (make-libcache call-interp call-lookup #f))
@@ -85,7 +84,7 @@
         ((eqv? #f obj) _false)
         ((pair? obj) (_cons (conv (car obj)) (conv (cdr obj))))
         ((null? obj) _nil)
-        ((symbol? obj) (_wrap-string (symbol->string obj)))
+        ((symbol? obj) (symbol->string obj))
         (else (error "Unknown object" obj))))
 
     (let ((ifo (lookup-cached-libinfo arg)))
@@ -99,8 +98,7 @@
       (vector '$$runvm runvm 1 1)
       (vector '$$command-line (lambda (bogus) 
                                 (_wrap-vector
-                                  (list->vector
-                                    (map _wrap-string args)))) 1 1)
+                                  (list->vector args))) 1 1)
       (vector '$$lookup-cached-libinfo/encoded 
               lookup-cached-libinfo/encoded 1 1)
       (vector '$$lookup-cached-code lookup-cached-code 1 1)

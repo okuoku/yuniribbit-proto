@@ -7,8 +7,6 @@
 
   ;; bytevector-type = 8
   
-  (define (bytevector? x)
-    (and (rib? x) (eqv? 8 (field2 x))))
   (define (require-bv bv)
     (if (bytevector? bv)
         #t

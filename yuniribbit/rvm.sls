@@ -75,9 +75,9 @@
   (if x _true _false))
 
 (define (import-string x) 
-  (unless (_string? x)
+  (unless (string? x)
     (error "tried to import non-string" x))
-  (_unwrap-string x))
+  x)
 
 (define (import-value x)
   (cond
@@ -86,12 +86,12 @@
     ((_symbol? x) (_unwrap-symbol/name x))
     ((symbol? x) x)
     ((_procedure? x) x)
-    ((_string? x) (import-string x))
+    ((string? x) (import-string x))
     ((eqv? _nil x) '())
     ((eqv? _true x) #t)
     ((eqv? _false x) #f)
     ((eqv? _eof-object x) (eof-object))
-    ((_bytevector? x) (_unwrap-bytevector x))
+    ((bytevector? x) x)
     ((_vector? x) (vector-map import-value (_unwrap-vector x)))
     ((_pair? x) (cons (import-value (_car x)) (import-value (_cdr x))))
     (else
@@ -105,8 +105,8 @@
     ((eof-object? x) _eof-object)
     ((char? x) x)
     ((null? x) _nil)
-    ((string? x) (_wrap-string x))
-    ((bytevector? x) (_wrap-bytevector x))
+    ((string? x) x)
+    ((bytevector? x) x)
     (else
       (error "Unsupported primitive object" x))))
 
@@ -205,7 +205,7 @@
       ((char? opnd) opnd)
       ((null? opnd) _nil)
       ((boolean? opnd) (if opnd _true _false))
-      ((string? opnd) (_wrap-string opnd))
+      ((string? opnd) opnd)
       ((pair? opnd) (_cons (encode-constant (car opnd))
                            (encode-constant (cdr opnd))))
       ((_procedure? opnd) opnd)
@@ -411,16 +411,15 @@
       (vector '$error/core (primn (lambda x
                               (error "Error" x))) #f #f)
       (vector 'string->symbol (lambda (str)
-                                (unless (_string? str)
+                                (unless (string? str)
                                   (error "String required" str))
-                                (let* ((name (_unwrap-string str))
-                                       (namesym (string->symbol name)))
+                                (let ((namesym (string->symbol str)))
                                   (intern! namesym))) 1 1)
       (vector 'procedure? (lambda (x) (if (_procedure? x) _true _false)) 1 1)
       (vector 'symbol->string (lambda (sym)
                                 (unless (_symbol? sym)
                                   (error "Symbol required" sym))
-                                (_wrap-string (symbol->string (_unwrap-symbol/name sym)))) 1 1)
+                                (symbol->string (_unwrap-symbol/name sym))) 1 1)
       ;; Should be no-op for non-scheme implementations
       (vector 'vminject import-value 1 1)
       (vector 'vmfetchcode vmfetchcode 1 1)

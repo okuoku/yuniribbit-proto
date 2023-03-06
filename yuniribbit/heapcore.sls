@@ -20,21 +20,15 @@
     _pair?
     _cons _car _cdr
     _symbol?
-    _string?
     _vector?
-    _bytevector?
     _simple-struct?
     _procedure?
     
     ;; Type constructors
     _make-uninterned-symbol
-    _wrap-string
-    _wrap-bytevector
     _wrap-vector
     _wrap-simple-struct
     _wrap-hashtable
-    _unwrap-string
-    _unwrap-bytevector
     _unwrap-vector
     _unwrap-simple-struct
     _unwrap-hashtable
@@ -47,12 +41,12 @@
   (define pair-type      0)
   (define procedure-type 1)
   (define symbol-type    2)
-  (define string-type    3)
+  ;(define string-type    3)
   (define vector-type    4)
   (define singleton-type 5)
   (define values-type    6) ;; yuniribbit (lis 0 TYPE)
   ;; 7 was char-type
-  (define bytevector-type 8) ;; yuniribbit
+  ;(define bytevector-type 8) ;; yuniribbit
   (define simple-struct-type 9) ;; yuniribbit
   (define hashtable-type 10) ;; yuniribbit
 
@@ -78,9 +72,7 @@
   (define (_cdr pair) (_field1 pair))
 
   (define _symbol? (instance? symbol-type))
-  (define _string? (instance? string-type))
   (define _vector? (instance? vector-type))
-  (define _bytevector? (instance? bytevector-type))
   (define _simple-struct? (instance? simple-struct-type))
   (define _hashtable? (instance? hashtable-type))
   (define _procedure? (instance? procedure-type))
@@ -90,13 +82,9 @@
     ;(_rib _false str symbol-type)
     (_rib str str symbol-type) ;; debug
     )
-  (define (_wrap-string x) (_rib x 0 string-type))
-  (define (_wrap-bytevector x) (_rib x 0 bytevector-type))
   (define (_wrap-vector x) (_rib x 0 vector-type))
   (define (_wrap-simple-struct x) (_rib x 0 simple-struct-type))
   (define (_wrap-hashtable x type) (_rib x type hashtable-type))
-  (define (_unwrap-string x) (_field0 x))
-  (define (_unwrap-bytevector x) (_field0 x))
   (define (_unwrap-vector x) (_field0 x))
   (define (_unwrap-simple-struct x) (_field0 x))
   (define (_unwrap-hashtable x) (_field0 x))
