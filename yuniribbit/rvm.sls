@@ -460,7 +460,8 @@
           (set-var "unused" name (_rib id _nil procedure-type)))
         (loop (+ idx 1)))))
 
-  (hashtable-set! globals '_eof-object _eof-object)
+  ;; FIXME: Remove this
+  (hashtable-set! globals '_eof-object (_rib _eof-object _eof-object 5))
 
   ;; Start
 

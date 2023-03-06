@@ -16,11 +16,12 @@
         (list->values x)))
 
   ;; call/cc for RVM
+  (define %%dummy-closure (rib #f #f #f))
   (define (%%do-call/cc1 rec)
-    (let ((cont-here (field1 (field1 (close #f)))))
+    (let ((cont-here (field1 (field1 (close %%dummy-closure)))))
      (rec (lambda (ret*)
             (let ((v (%list->values0 ret*))
-                  (cont-next (field1 (field1 (close #f)))))
+                  (cont-next (field1 (field1 (close %%dummy-closure)))))
              ;; copy stack(0) and pc(2) from cont-here
              (field0-set! cont-next (field0 cont-here))
              (field2-set! cont-next (field2 cont-here))

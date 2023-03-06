@@ -43,7 +43,7 @@
   (define symbol-type    2)
   ;(define string-type    3)
   (define vector-type    4)
-  (define singleton-type 5)
+  ;(define singleton-type 5)
   (define values-type    6) ;; yuniribbit (lis 0 TYPE)
   ;; 7 was char-type
   ;(define bytevector-type 8) ;; yuniribbit
@@ -93,8 +93,8 @@
 
 
   ;; Singleton object instances
-  (define _false (_rib "false" 0 singleton-type))
-  (define _true  (_rib "true" 0 singleton-type))
-  (define _nil   (_rib "nil" 0 singleton-type))
-  (define _eof-object (_rib "eof-object" 0 singleton-type))
+  (define _false #f)
+  (define _true #t)
+  (define _nil '())
+  (define _eof-object (eof-object))
   )
