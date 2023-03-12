@@ -57,6 +57,8 @@
          (</itr b queue))))
 |#
 
+#|
+
 (define (>/itr b queue)
   (if (null? queue) 
     #t
@@ -113,6 +115,7 @@
         ($fx>= a b)))
     (and (>= a b)
          (>=/itr b queue))))
+|#
 
 #|
 (define (%plus/itr cur-flonum? cur queue)
