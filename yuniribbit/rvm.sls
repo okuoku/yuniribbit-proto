@@ -300,10 +300,10 @@
                (case code
                  ((-12) ;; (apply-values consumer v*)
                   (let* ((v*       (_car stack)) (stack (_cdr stack))
-                                                 (consumer (_car stack)) (stack (_cdr stack))
-                                                 (trampoline0 (_rib consumer 0 0))
-                                                 ;; 0 = jump/call-op
-                                                 (trampoline (_rib 0 trampoline0 next)))
+                         (consumer (_car stack)) (stack (_cdr stack))
+                         (trampoline0 (_rib consumer 0 0))
+                         ;; 0 = jump/call-op
+                         (trampoline (_rib 0 trampoline0 next)))
                     ;(write (list 'APV: v*)) (newline)
                     (cond
                       ((and (_rib? v*) (eqv? values-type (_field2 v*)))
