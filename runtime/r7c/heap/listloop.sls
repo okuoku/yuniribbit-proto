@@ -19,7 +19,7 @@
   (define ($fx-length lis)
     (if (pair? lis)
         (length-loop 0 lis)
-        (if (eqv? '())
+        (if (eqv? '() lis)
             0
             (error "Pair required" lis))))
 
