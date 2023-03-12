@@ -55,6 +55,12 @@
 (define globals (make-symbol-hashtable))
 (define none (list 'none))
 
+(define (savedump obj)
+  (let ((p (open-binary-output-file outbin)))
+   (drypack-put p obj)
+   (write (list 'SAVING... source '=> outbin)) (newline)
+   (close-port p)))
+
 (define (vmlookup sym)
   (let ((obj (hashtable-ref globals sym none)))
    (when (eq? obj none)
@@ -91,11 +97,16 @@
     (interp-activate!)
 
     (let ((bundle (interp-gen-bundle source)))
-     (cache-runtime! bundle)
-     ;; Reset globals
-     (set! globals (make-symbol-hashtable))
-     (interp-reset!)
-     (interp-run bundle)))
+     (cond
+       (outbin ;; compile-only
+         (savedump bundle)
+         (exit 0))
+       (else ;; Run
+         (cache-runtime! bundle)
+         ;; Reset globals
+         (set! globals (make-symbol-hashtable))
+         (interp-reset!)
+         (interp-run bundle)))))
   (else
     (error "no op")))
 
