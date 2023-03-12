@@ -6,9 +6,6 @@
           (r7c core error)
           )
 
-  ;; simple-struct-type = 9
-  (define (simple-struct? x)
-    (and (rib? x) (eqv? 9 (field2 x))))
   (define (require-ss x)
     (if (simple-struct? x)
         #t

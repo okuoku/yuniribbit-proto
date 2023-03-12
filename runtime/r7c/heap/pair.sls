@@ -5,10 +5,6 @@
           (r7c core error)
           (rvm-primitives))
 
-  ;; pair-type = 0
-  (define (pair? x)
-    (and (rib? x)
-         (eqv? (field2 x) 0)))
   (define (require-pair p)
     (if (pair? p)
         #t

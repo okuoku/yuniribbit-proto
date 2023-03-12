@@ -183,6 +183,26 @@
         _true
         _false))
 
+  (define (%bool x)
+    (if x _true _false))
+
+  ;; pair-type = 0
+  (define (%pair? x)
+    (%bool (and (_rib? x) (eqv? 0 (_field2 x)))))
+
+  ;; symbol-type = 2
+  (define (%symbol? x) 
+    (%bool (and (_rib? x) (eqv? 2 (_field2 x)))))
+
+  ;; vector-type = 4
+  (define (%vector? v)
+    (%bool (and (_rib? v) (eqv? 4 (_field2 v)))))
+
+  ;; simple-struct-type = 9
+  (define (%simple-struct? x)
+    (%bool (and (_rib? x) (eqv? 9 (_field2 x)))))
+
+
   (define (heapext-ops)
     (vector
       ;; Primitive Type checks (not expressed with ribs)
@@ -191,6 +211,12 @@
       (vector 'bytevector? %bytevector? 1 1)
       (vector '$fixnum? $fixnum? 1 1)
       (vector '$flonum? $flonum? 1 1)
+
+      ;; Wrapped primitive type checks
+      (vector 'pair? %pair? 1 1)
+      (vector 'symbol? %symbol? 1 1)
+      (vector 'vector? %vector? 1 1)
+      (vector 'simple-struct? %simple-struct? 1 1)
 
       ;; Vectors
       (vector 'vec-copy vec-copy 3 1)
