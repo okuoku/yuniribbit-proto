@@ -170,14 +170,18 @@
       (%sub/itr #f x queue))))
 |#
 
+
 (define (%div/itr acc queue)
-  ;; FIXME: Do not always promote to flonum...
   (if (null? queue)
     acc
     (let ((a (car queue)))
-     (if ($flonum? a)
-       (%div/itr ($fl/ acc a) (cdr queue))
-       (%div/itr ($fl/ acc ($fx->fl a)) (cdr queue))))))
+     (if ($flonum? acc) 
+         (if ($flonum? a)
+             (%div/itr ($fl/ acc a) (cdr queue))
+             (%div/itr ($fl/ acc ($fx->fl a)) (cdr queue)))
+         (if ($flonum? a)
+             (%div/itr ($fl/ ($fx->fl acc) a) (cdr queue))
+             (%div/itr ($fx/ acc a) (cdr queue)))))))
 
 (define (/ x . queue)
   (if (null? queue)
