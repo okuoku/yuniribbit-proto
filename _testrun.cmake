@@ -1,6 +1,14 @@
-# FIXME: Detect it
-set(ROOT /home/oku/repos/yuni)
-set(YUNIBUILD /home/oku/yuni)
+if(NOT ROOT)
+    set(ROOT /home/oku/repos/yuni)
+endif()
+if(NOT YUNIBUILD)
+    set(YUNIBUILD /home/oku/yuni)
+endif()
+if(NOT IMPL)
+    set(impl gauche)
+else()
+    set(impl ${IMPL})
+endif()
 
 set(libargs)
 foreach(e lib lib-compat lib-r7c)

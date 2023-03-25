@@ -1,6 +1,14 @@
-# FIXME: Detect it
-set(ROOT /home/oku/repos/yuni)
-set(YUNIBUILD /home/oku/yuni)
+if(NOT ROOT)
+    set(ROOT /home/oku/repos/yuni)
+endif()
+if(NOT YUNIBUILD)
+    set(YUNIBUILD /home/oku/yuni)
+endif()
+if(NOT IMPL)
+    set(impl gauche)
+else()
+    set(impl ${IMPL})
+endif()
 
 math(EXPR arg "${CMAKE_ARGC}-1")
 set(cur 0)
@@ -51,8 +59,6 @@ set(libargs)
 foreach(e lib lib-compat lib-r7c)
     list(APPEND libargs -libpath ${ROOT}/${e})
 endforeach()
-
-set(impl gauche)
 
 # Run
 execute_process(
