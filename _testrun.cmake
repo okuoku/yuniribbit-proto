@@ -23,6 +23,8 @@ if(interp)
         -bootstrap
         ${CMAKE_CURRENT_LIST_DIR}/boot/start.sps
         --
+        -yuniroot ${ROOT}
+        -runtimeroot ${CMAKE_CURRENT_LIST_DIR}
         ${input})
 else()
     get_filename_component(nam ${input} NAME_WE)

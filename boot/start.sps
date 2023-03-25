@@ -2,34 +2,36 @@
         (yuni io drypack)
         (ribbon util interp))
 
-(define libpath
-  ;; FIXME: Hardcoded
-  '("/home/oku/repos/yuniribbit-proto/runtime"
-    "/home/oku/repos/yuniribbit-proto"
-    "/home/oku/repos/yuni/external"
-    "/home/oku/repos/yuni/lib"
-    "/home/oku/repos/yuni/lib-compat"
-    "/home/oku/repos/yuni/lib-r7c"
-    ))
+(define libpath '())
 
+(define YUNIROOT #f)
+(define RUNTIMEROOT #f)
 (define source #f)
 (define *command-line* (vector->list ($$command-line 0)))
 
-(define (consume-argument!)
+(define (consume-arguments!)
+  (define (fail a)
+    (write (list 'ARGERROR: a)) (newline)
+    (exit 1))
   (when (pair? *command-line*)
     (let ((a (car *command-line*))
           (d (cdr *command-line*)))
-      (set! source a))))
-
-(define (decodehost obj)
-  (let ((p (open-input-bytevector obj)))
-   (drypack-get p)))
-
-(define (encodehost obj)
-  (let ((p (open-output-bytevector)))
-   (drypack-put p obj)
-   (let ((bv (get-output-bytevector p)))
-    bv)))
+      (cond
+        ((string=? "-yuniroot" a)
+         (unless (pair? d)
+           (fail a))
+         (set! YUNIROOT (car d))
+         (set! *command-line* (cdr d))
+         (consume-arguments!))
+        ((string=? "-runtimeroot" a)
+         (unless (pair? d)
+           (fail a))
+         (set! RUNTIMEROOT (car d))
+         (set! *command-line* (cdr d))
+         (consume-arguments!))
+        (else
+          (set! source a)
+          (set! *command-line* d))))))
 
 (define ($$lookup-cached-libinfo sym) 
   (define (conv obj)
@@ -44,7 +46,19 @@
    ;(write (list 'CACHED?: sym (if ret #t #f))) (newline)
    (conv ret)))
 
-(consume-argument!)
+(consume-arguments!)
+
+(when YUNIROOT
+  (set! libpath
+    (append (map (lambda (e) (string-append YUNIROOT "/" e))
+                 '("external" "lib" "lib-compat" "lib-r7c"))
+            libpath)))
+
+(when RUNTIMEROOT
+  (set! libpath
+    (append (list (string-append RUNTIMEROOT "/runtime")
+                  RUNTIMEROOT)
+            libpath)))
 
 (unless source
   (set! source "/home/oku/repos/yuni/tests/lib/lighteval0.sps"))
