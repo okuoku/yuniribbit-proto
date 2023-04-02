@@ -125,10 +125,7 @@
 
         (else
          ;; self-evaluating
-         (rib constobj-op (vminject 
-                            (if (symbol? expr) 
-                                (rename expr)
-                                expr)) cont))))
+         (rib constobj-op (vminject expr) cont))))
 
 (define (gen-call argc v cont)
   (let ((g (if (eqv? cont tail)
@@ -196,7 +193,7 @@
       (if (eqv? (car cte) var)
           i
           (lookup var (cdr cte) (+ i 1)))
-      var))
+      (rename var)))
 
 (define (extend vars cte)
   (if (pair? vars)
