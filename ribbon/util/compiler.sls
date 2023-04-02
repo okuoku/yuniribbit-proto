@@ -88,9 +88,10 @@
                  (loop (cons (cdr m) acc) (cdr q))
                  (loop acc (cdr q)))))))
 
+    (define (rename-noop x) x)
     (define (comp? seq)
       (if compiled?
-          (compile-program seq)
+          (compile-program seq rename-noop)
           seq))
     (define (code libsym) (yunife-get-library-code fe libsym))
     (define (macro libsym) (filter-macro libsym 

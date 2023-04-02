@@ -16,6 +16,7 @@
     ;(write (list 'CACHELOADER libname sym)) (newline)
     ;; cb = ^[result imports exports code macro*]
     (let ((libinfo ($$lookup-cached-libinfo sym)))
+      ;(write (list 'LOOKUP: sym (and libinfo #t))) (newline)
       (cond
         (libinfo
           ;(write (list 'LOOKUP: libinfo)) (newline)

@@ -4,7 +4,7 @@
                  (ribbon vmglue compiler))
 
          
-(define (compile-program program)
+(define (compile-program program rename)
 ;;;----------------------------------------------------------------------------
 
 (define jump/call-op 0)
@@ -125,7 +125,10 @@
 
         (else
          ;; self-evaluating
-         (rib constobj-op (vminject expr) cont))))
+         (rib constobj-op (vminject 
+                            (if (symbol? expr) 
+                                (rename expr)
+                                expr)) cont))))
 
 (define (gen-call argc v cont)
   (let ((g (if (eqv? cont tail)

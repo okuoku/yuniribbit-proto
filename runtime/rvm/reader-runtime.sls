@@ -22,7 +22,11 @@
             a))
         (else
           (let loop ((queue ""))
+           (write (list 'READBUF: (string-length queue))) (newline)
            (let ((r (read-string 4096 port)))
+             (write (list 'READDONE: (if (string? r) 
+                                         (string-length r)
+                                         #f))) (newline)
             (if (eof-object? r)
                 (if (string=? "" queue)
                     (eof-object)
@@ -40,8 +44,8 @@
     ;(write (list 'CACHELOADER libname sym)) (newline)
     ;; cb = ^[result imports exports code macro*]
     (let ((libinfo (vmfetch ($$lookup-cached-libinfo sym)))) 
+      ;(write (list 'LOOKUP: libinfo)) (newline)
       (if libinfo
-          ;(write (list 'LOOKUP: libinfo)) (newline)
           (let ((imports (car libinfo))
                 (exports (cadr libinfo))
                 (macname* (caddr libinfo)))
@@ -61,13 +65,14 @@
          'do-nothing))))
 
   (define (%r7c-eval/yuni expr)
-    (let* ((current-mode ($$macro-runtime-mode 0))
+    (let* ((rename-noop (lambda (x) x))
+           (current-mode ($$macro-runtime-mode 0))
            (prog (if (= current-mode 0)
                      `(($vm-exit 2 ,expr))
                      `((import (yuni scheme)) ($vm-exit 2 ,expr)))))
       (cond 
         ((= current-mode 0) ;; don't use yunife
-         (let ((code (compile-program prog)))
+         (let ((code (compile-program prog rename-noop)))
           ($$runvm code)))
         (else
           (unless lighteval-fe
@@ -75,7 +80,7 @@
           (yunife-load-sexp-list! lighteval-fe prog)
           (let* ((progsym (yunife-get-libsym lighteval-fe #t))
                  (expanded (yunife-get-library-code lighteval-fe progsym))
-                 (code (compile-program expanded)))
+                 (code (compile-program expanded rename-noop)))
             ;(write (list 'RUNNING: expanded)) (newline)
             ($$runvm code))))))
 
