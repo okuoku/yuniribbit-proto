@@ -142,7 +142,7 @@
            (eqv? (field1 cont) 'arg1)
            (rib? (field2 cont)))
       (field2 cont) ;; remove pop
-      (rib const-op 0 cont))) ;; add dummy value for set!
+      (rib constobj-op 0 cont))) ;; add dummy value for set!
 
 (define (comp-bind ctx vars exprs body cont)
   (comp-bind* ctx vars exprs ctx body cont))
