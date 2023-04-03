@@ -1,5 +1,6 @@
 (library (ribbon util interp)
   (export interp-reset!
+          interp-reset!/bootstrap
           interp-set-libpath!
           interp-activate!
           interp-gen-bundle
@@ -9,7 +10,6 @@
   (import (yuni scheme)
           (ribbon vmglue vm)
           (ribbon util compiler))
-
   
   ;; FIXME: move this into separate library
   (define (interp-cache-handler libname sym cb)
@@ -31,6 +31,13 @@
               (cb #t imports exports code mac*))))
         (else ;; not-found
           (cb #f #f #f #f #f)))))
+
+  (define (interp-cache-handler/empty libname sym cb)
+    (cb #f #f #f #f #f))
+
+  (define (interp-reset!/bootstrap)
+    (ribbon-compiler-reset!)
+    (ribbon-compiler-set-cache-handler! interp-cache-handler/empty))
 
   (define (interp-reset!)
     (ribbon-compiler-reset!)
