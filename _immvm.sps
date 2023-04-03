@@ -5,6 +5,7 @@
         (yuniribbit rvm)
         (ribbon vmglue vm)
         (ribbon util interp)
+        (ribbon util ribcode)
         (yuni hashtables))
 
 (define libpath '())
@@ -55,7 +56,28 @@
 (define globals (make-symbol-hashtable))
 (define none (list 'none))
 
-(define (savedump obj)
+(define (savedump! obj)
+  (define (report sym enc)
+    (let ((tbl (vector-ref enc 4))
+          (offs-rosym (vector-ref enc 2))
+          (offs-rwsym (vector-ref enc 3)))
+      (let ((rosyms (vector-copy tbl offs-rosym offs-rwsym))
+            (rwsyms (vector-copy tbl offs-rwsym (vector-length tbl))))
+        (write (list 'LIB: sym 'ROSYM: rosyms 'RWSYM: rwsyms)) (newline))))
+  (define (testentry e)
+    (let ((vmmac (vector-ref e 7))
+          (vmseq (vector-ref e 5))
+          (libsym (vector-ref e 0)))
+      (let* ((encmac (ribcode-encode vmmac))
+             (encseq (ribcode-encode vmseq))
+             (decmac (ribcode-decode encmac))
+             (decseq (ribcode-decode encseq)))
+        (vector-set! e 7 decmac)
+        (vector-set! e 5 decseq)
+        (report libsym encmac)
+        (report libsym encseq))))
+
+  (for-each testentry obj)
   (let ((p (open-binary-output-file outbin)))
    (drypack-put p obj)
    (write (list 'SAVING... source '=> outbin)) (newline)
@@ -99,7 +121,8 @@
     (let ((bundle (interp-gen-bundle source)))
      (cond
        (outbin ;; compile-only
-         (savedump bundle)
+         ;; Modifies bundle by encoding
+         (savedump! bundle)
          (exit 0))
        (else ;; Run
          (cache-runtime! bundle)
