@@ -72,8 +72,10 @@
              (encseq (ribcode-encode vmseq))
              (decmac (ribcode-decode encmac))
              (decseq (ribcode-decode encseq)))
-        (vector-set! e 7 decmac)
-        (vector-set! e 5 decseq)
+        (vector-set! e 5 encseq)
+        (vector-set! e 7 encmac)
+        ;(vector-set! e 7 decmac)
+        ;(vector-set! e 5 decseq)
         (report libsym encmac)
         (report libsym encseq))))
 
