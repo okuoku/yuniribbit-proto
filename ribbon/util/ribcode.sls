@@ -34,7 +34,21 @@
       (vector-ref cnt 0))
 
     (define (objs cnt)
-      (hashtable-keys (vector-ref cnt 2)))
+      (let* ((tmpht (make-eqv-hashtable))
+             (len (vector-ref cnt 0))
+             (out (make-vector len)))
+       (call-with-values 
+         (lambda () (hashtable-entries (vector-ref cnt 2)))
+         (lambda (k v) 
+           (unless (= (vector-length k) (vector-length out))
+             (error "Invalid hashtable content"))
+           (vector-for-each (lambda (kk vv) (hashtable-set! tmpht vv kk))
+                            k v)))
+       (let loop ((i 0))
+        (unless (= len i)
+          (vector-set! out i (hashtable-ref tmpht i #f))
+          (loop (+ i 1))))
+       out))
 
     (define (enter-getref write? obj)
       (cond
