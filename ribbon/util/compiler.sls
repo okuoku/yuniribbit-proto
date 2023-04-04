@@ -13,6 +13,7 @@
   (import (yuni scheme)
           (yunife core)
           (yuni hashtables)
+          (ribbon vmglue compiler)
           (yuniribbit rsc))
 
   (define ribbon-compiler-fe #f)
@@ -23,10 +24,6 @@
       (rsc-core-syntax)
       (rsc-core-syntax/primitives)
       (rvm-primitives)))
-
-  ;; Compiled code cache
-  (define ribbon-compiler-code-cache (make-symbol-hashtable))
-  (define ribbon-compiler-macro-cache (make-symbol-hashtable))
 
   (define (ensure-ribbon-compiler-fe!)
     (unless ribbon-compiler-fe
@@ -55,12 +52,17 @@
     (set! ribbon-compiler-fe #f)
     (ensure-ribbon-compiler-fe!))
 
-  (define (ribbon-compiler-output-bundle compiled?)
+  (define (ribbon-compiler-output-bundle compiled? online?)
+    (define (makesym str) (rib str str 2))
+    (define emu-env? (not (rib? 'bogus)))
     (define fe ribbon-compiler-fe)
     (define loaded ribbon-compiler-corelibs)
     (define outseq '())
     (define progsym (yunife-get-libsym fe #t))
     (define readersym (yunife-get-libsym fe '(rvm reader-runtime)))
+
+    ;; exports: libsym -> hashtable(global-sym -> non-interned-sym)
+    (define ht-exports (and compiled? (make-symbol-hashtable)))
 
     (define (filter-macro libsym alist)
       (define (filter-defmacro src)
@@ -88,11 +90,6 @@
                  (loop (cons (cdr m) acc) (cdr q))
                  (loop acc (cdr q)))))))
 
-    (define (rename-noop x) x)
-    (define (comp? seq)
-      (if compiled?
-          (compile-program seq rename-noop)
-          seq))
     (define (code libsym) (yunife-get-library-code fe libsym))
     (define (macro libsym) (filter-macro libsym 
                                          (yunife-get-library-macro fe libsym)))
@@ -113,28 +110,122 @@
         (process libsym libname)))
 
     (define (process libsym libname)
+      (define precompiled? #f)
+      (define exporting-macro? #f)
+      (define (rename-noop x) x)
+      (define (rename-prog x)
+        (let ((r (hashtable-ref ht-liblocal x #f)))
+         (cond
+           (r
+             (write (list 'RENAME: r libname)) (newline)
+             r)
+           (else
+             ;; Allocate new local symbol
+             (let ((me (makesym (symbol->string x))))
+              (write (list 'LOCAL: me libname)) (newline)
+              (hashtable-set! ht-liblocal x me)
+              me)))))
+      (define (comp?/prog seq)
+        (if compiled?
+            (compile-program seq (if online? rename-prog rename-noop))
+            seq))
+      (define (comp?/macro seq)
+        (if compiled?
+            (compile-program seq rename-noop)
+            seq))
+      (define ht-liblocal (and online? (make-eq-hashtable)))
+      (define ht-libexports (and online? (make-eq-hashtable)))
       (define (imp-fixup imports)
         (if (eq? #t libname)
             (append imports '((rvm reader-runtime)))
             imports))
+      (when online?
+        (when emu-env?
+          (display "WARNING: disabled online mode because we're on emu\n")
+          (set! online? #f))
+        (unless compiled?
+          (error "online mode requires on-the-fly compilation")))
       ;(write (list 'PROCESS: libsym)) (newline)
       (let* ((seq (code libsym))
              (mac (macro libsym))
+             (macnames* (macname mac))
              (imports
                (imp-fixup (or (yunife-get-library-imports fe libsym) '())))
              (exports (yunife-get-library-exports fe libsym))
              (import* (map (lambda (libname) (yunife-get-libsym fe libname))
                            imports)))
         (for-each loadlib! import* imports)
+        (unless (pair? seq)
+          (set! precompiled? #t))
+        (when online?
+          ;; Import other library exports 
+          (for-each (lambda (libsym)
+                      (let ((x (hashtable-ref ht-exports libsym #f)))
+                       (when x
+                         (call-with-values (lambda () (hashtable-entries x))
+                                           (lambda (k v)
+                                             (vector-for-each
+                                               (lambda (symg symv)
+                                                 (hashtable-set! ht-liblocal
+                                                                 symg
+                                                                 symv))
+                                               k v))))))
+                    import*)
+          ;; Add export fields
+          (when exports
+            (for-each (lambda (e)
+                        (let ((x (hashtable-ref ht-liblocal e #f)))
+                         (unless x
+                           (cond
+                             (precompiled?
+                               (hashtable-set! ht-liblocal e e))
+                             (else
+                               (write (list 'MAKESYM: e (pair? seq))) (newline)
+                               (let ((sym (makesym (symbol->string e))))
+                                (hashtable-set! ht-liblocal e sym)
+                                (hashtable-set! ht-libexports sym e)))))))
+                      exports)))
         (set! outseq (cons (vector libname libsym import* imports exports 
-                                   (comp? seq)
-                                   (macname mac) (comp? (maccode mac)))
+                                   (comp?/prog seq)
+                                   macnames* (comp?/macro (maccode mac)))
                            outseq))
+        (when online?
+          ;; Check the library has macro export
+          (let* ((me (car outseq))
+                 (macronames* (vector-ref me 6)))
+            (for-each (lambda (m)
+                        (let ((r (hashtable-ref ht-liblocal m #f)))
+                         (when r
+                           (when (hashtable-ref ht-libexports r #f)
+                             (write (list 'EXPORT-MACRO: m libsym)) (newline)
+                             (set! exporting-macro? #t)))))
+                      macronames*))
+          ;; Construct export table
+          (when (and exports (not (null? exports)))
+            (let ((ht-myex (make-symbol-hashtable)))
+             ;; If the library has macro export, export everything
+             (for-each (lambda (e)
+                         (let ((r (hashtable-ref ht-liblocal e #f)))
+                          (unless r
+                            (error "Exported but not found" e libsym))
+                          #|
+                          (cond
+                            ((eq? e r)
+                             (write (list 'EXPORT: e libsym)) (newline))
+                            (else
+                              (write (list 'EXPORT-RENAMED: e r libsym))
+                              (newline)))
+                          |#
+                          (hashtable-set! ht-myex e r))) 
+                       (if (or exporting-macro? precompiled?)
+                           (vector->list (hashtable-keys ht-liblocal))
+                           exports))
+             (hashtable-set! ht-exports libsym ht-myex))))
+
         (addloaded! libsym)))
 
     (process readersym '(rvm reader-runtime))
     (process progsym #t)
     (reverse outseq))
-
 
   )

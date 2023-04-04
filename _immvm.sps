@@ -120,7 +120,7 @@
     (interp-set-libpath! libpath)
     (interp-activate!)
 
-    (let ((bundle (interp-gen-bundle source)))
+    (let ((bundle (interp-gen-bundle (if outbin #f #t) source)))
      (cond
        (outbin ;; compile-only
          ;; Modifies bundle by encoding

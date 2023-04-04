@@ -49,13 +49,13 @@
   (define (interp-activate!)
     (ribbon-compiler-activate!))
   
-  (define (interp-gen-bundle path)
+  (define (interp-gen-bundle online? path)
     (ribbon-compiler-compile-program path)
-    (ribbon-compiler-output-bundle #t))
+    (ribbon-compiler-output-bundle #t online?))
 
   (define (interp-gen-expanded path)
     (ribbon-compiler-compile-program path)
-    (ribbon-compiler-output-bundle #f))
+    (ribbon-compiler-output-bundle #f #f))
   
   (define (interp-run bundle)
     (for-each (lambda (v)
