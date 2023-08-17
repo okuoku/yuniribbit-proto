@@ -20,8 +20,8 @@
           bv-set!/s16 bv-set!/u16
           bv-set!/s32 bv-set!/u32
           bv-set!/s64 bv-set!/u64
-          bv-ref/ptr bv-set!/ptr
+          bv-ref/ptr0 bv-set!/ptr0
           address->bytevector bytevector->address
-          nccc-call nccc-sizeof-ptr
-          nccc-get-dispatch)
+          nccc-call0 nccc-sizeof-ptr
+          nccc-get-dispatch0)
   (import (rsc-core-syntax/primitives)))
