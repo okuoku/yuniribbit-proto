@@ -47,15 +47,17 @@
           (len (bytevector-length bv)))
       (make-ptr addr bv len)))
 
-  (define (ptr->bytevector ptr)
-    (let ((cache (vector-ref ptr 2)))
-     (if cache
-         cache
-         (begin
-           (let* ((addr (vector-ref ptr 1))
-                  (bv (address->bytevector addr #f)))
-             (vector-set! ptr 2 bv)
-             bv)))))
+  (define (ptr->bytevector ptr?)
+    (if (integer? ptr?)
+        (address->bytevector ptr? #f)
+        (let ((cache (vector-ref ptr? 2)))
+         (if cache
+             cache
+             (begin
+               (let* ((addr (vector-ref ptr? 1))
+                      (bv (address->bytevector addr #f)))
+                 (vector-set! ptr? 2 bv)
+                 bv))))))
 
   (define (ptr->integer ptr)
     (cond
@@ -73,15 +75,11 @@
       (else
         (error "Pointer required" ptr))))
 
-
-  (define (bv-ref/ptr bv offs)
-    (let ((i (bv-ref/ptr0 bv offs)))
-     (integer->ptr i)))
+  (define bv-ref/ptr bv-ref/ptr0)
 
   (define (bv-set!/ptr bv offs ptr)
     (let ((i (ptr->integer ptr)))
      (bv-set!/ptr0 bv offs i)))
-
 
   ;; Ref/set against ptr
   (define (ptr-ref/u8 ptr offs)
