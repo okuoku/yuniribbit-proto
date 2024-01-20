@@ -32,15 +32,9 @@
                 (if (string=? "" queue)
                     (eof-object)
                     (let* ((bv (string->utf8 queue))
-                           (s0 (utf8-read bv))
-                           (s1 (miniread-utf8-read bv)))
-                      (unless (equal? s0 s1)
-                        (write (list 'UNMATCH: s1))
-                        (newline)
-                        (error "UNMATCH READ RESULT"))
-                      (yuniport-reader-cache-set! port s1)
-                      (%r7c-read/mini port))
-                    )
+                           (s0 (miniread-utf8-read bv)))
+                      (yuniport-reader-cache-set! port s0)
+                      (%r7c-read/mini port)))
                 (loop (string-append queue r)))))))))
 
   ;; lighteval runtime
