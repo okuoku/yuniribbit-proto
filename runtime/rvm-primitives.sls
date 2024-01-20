@@ -23,5 +23,8 @@
           bv-ref/ptr0 bv-set!/ptr0
           address->bytevector bytevector->address
           nccc-call0 nccc-sizeof-ptr
-          nccc-get-dispatch0)
+          nccc-get-dispatch0
+
+          ;; Ribbon(miniread)
+          miniread-utf8-read)
   (import (rsc-core-syntax/primitives)))
