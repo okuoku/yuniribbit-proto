@@ -7,6 +7,7 @@
           ;; read
           (r7c-yunicore yuniport)
           (yuni miniread reader)
+          (rvm-primitives)
           ;; eval
           (yunife core)
           (yuniribbit rsc))
@@ -30,10 +31,16 @@
             (if (eof-object? r)
                 (if (string=? "" queue)
                     (eof-object)
-                    (begin
-                      (yuniport-reader-cache-set! port
-                        (utf8-read (string->utf8 queue)))
-                      (%r7c-read/mini port)))
+                    (let* ((bv (string->utf8 queue))
+                           (s0 (utf8-read bv))
+                           (s1 (miniread-utf8-read bv)))
+                      (unless (equal? s0 s1)
+                        (write (list 'UNMATCH: s1))
+                        (newline)
+                        (error "UNMATCH READ RESULT"))
+                      (yuniport-reader-cache-set! port s1)
+                      (%r7c-read/mini port))
+                    )
                 (loop (string-append queue r)))))))))
 
   ;; lighteval runtime
