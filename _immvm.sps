@@ -6,6 +6,7 @@
         (ribbon vmglue vm)
         (ribbon util interp)
         (ribbon util ribcode)
+        (ribbon util mergebundle)
         (yuni hashtables))
 
 (define libpath '())
@@ -115,7 +116,8 @@
      (cond
        (outbin ;; compile-only
          ;; Modifies bundle by encoding
-         (savedump! bundle)
+         (let ((outbundle (merge-bootstrap-bundle! bundle)))
+           (savedump! outbundle))
          (exit 0))
        (else ;; Run
          (cache-runtime! bundle)
