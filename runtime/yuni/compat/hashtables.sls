@@ -15,7 +15,7 @@
     hashtable-for-each
     hashtable-fold
     )
-  (import (yuni scheme))
+  (import (yuni scheme) (rvm-primitives))
 
   (define (make-eq-hashtable) (ht-new 0))
   (define (make-eqv-hashtable) (ht-new 1))
