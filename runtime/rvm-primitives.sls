@@ -11,6 +11,14 @@
           ;; Ribbon(Scheme)
           vec-copy vec-copy! vec-ref vec-set! vec-new vec-length
 
+          ;; Ribbon (Hashtables)
+          ht-new
+          hashtable-set! hashtable-entries hashtable-ref
+          hashtable-keys hashtable-size
+
+          ;; Ribbon (Misc)
+          simple-struct?
+
           ;; Ribbon(NCCC)
           bv-ref/s8 bv-ref/u8
           bv-ref/s16 bv-ref/u16
