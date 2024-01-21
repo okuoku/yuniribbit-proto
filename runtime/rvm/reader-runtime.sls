@@ -6,7 +6,7 @@
   (import (yuni scheme)
           ;; read
           (r7c-yunicore yuniport)
-          (yuni miniread reader)
+          ;(yuni miniread reader)
           (rvm-primitives)
           ;; eval
           (yunife core)
