@@ -127,11 +127,11 @@
               me)))))
       (define (comp?/prog seq)
         (if compiled?
-            (compile-program seq (if online? rename-prog rename-noop))
+            (list (compile-program seq (if online? rename-prog rename-noop)))
             seq))
       (define (comp?/macro seq)
         (if compiled?
-            (compile-program seq rename-noop)
+            (list (compile-program seq rename-noop))
             seq))
       (define ht-liblocal (and online? (make-eq-hashtable)))
       (define ht-libexports (and online? (make-eq-hashtable)))
@@ -155,7 +155,7 @@
              (import* (map (lambda (libname) (yunife-get-libsym fe libname))
                            imports)))
         (for-each loadlib! import* imports)
-        (unless (pair? seq)
+        (unless (and (pair? seq) (pair? (car seq)))
           (set! precompiled? #t))
         (when online?
           ;; Import other library exports 

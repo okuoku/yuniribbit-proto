@@ -63,7 +63,7 @@
                                        ))))
 
               ;; Evaluate macro code
-              (interp (vector-ref v 7))
+              (for-each interp (vector-ref v 7))
               ;; Save VM closure object into host hashtable
               (for-each (lambda (sym)
                           (hashtable-set! macroht sym (lookup sym)))
