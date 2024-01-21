@@ -2,8 +2,8 @@
 ;; Special library to break circular dependency between
 ;; (yuni scheme) and (yuni miniread reader). 
 (library (rvm reader-runtime)
-  (export %r7c-read/mini)
-  (import (yuni scheme)
+  (export %r7c-read/mini %r7c-eval/yuni)
+  (import ;(yuni scheme)
           ;; read
           (r7c-yunicore yuniport)
           ;(yuni miniread reader)
