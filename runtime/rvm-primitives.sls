@@ -34,5 +34,14 @@
           nccc-get-dispatch0
 
           ;; Ribbon(miniread)
-          miniread-utf8-read)
+          miniread-utf8-read
+          
+          ;; Ribbon internals
+          $$command-line $vm-exit
+          $$lookup-cached-libinfo
+          $$lookup-cached-macro
+          $$lookup-cached-code
+          $$runvm
+          vminject
+          )
   (import (rsc-core-syntax/primitives)))
